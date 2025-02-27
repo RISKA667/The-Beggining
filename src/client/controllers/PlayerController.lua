@@ -13,13 +13,13 @@ PlayerController.__index = PlayerController
 
 function PlayerController.new()
     local self = setmetatable({}, PlayerController)
-    
+
     -- Référence au joueur local
     self.player = Players.LocalPlayer
-    
+
     -- Référence au contrôleur UI (sera initialisé dans Initialize)
     self.uiController = nil
-    
+
     -- État actuel du personnage
     self.characterState = {
         isWalking = false,
@@ -31,32 +31,32 @@ function PlayerController.new()
         buildingPreview = nil,
         equippedTool = nil
     }
-    
+
     -- Constantes
     self.walkSpeed = GameSettings.Player.walkSpeed
     self.runSpeed = GameSettings.Player.runSpeed
     self.interactionDistance = GameSettings.Player.interactionDistance
-    
+
     return self
 end
 
 function PlayerController:Initialize(uiController)
     self.uiController = uiController
-    
+
     -- Attendre que le personnage soit chargé
     if not self.player.Character then
         self.player.CharacterAdded:Wait()
     end
-    
+
     -- Configurer les actions et contrôles
     self:SetupControls()
-    
+
     -- Configurer les événements du personnage
     self:SetupCharacterEvents()
-    
+
     -- Configurer les événements du serveur
     self:SetupServerEvents()
-    
+
     print("PlayerController: Initialisé")
 end
 
@@ -70,14 +70,14 @@ function PlayerController:SetupControls()
             self:StopSprinting()
         end
     end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift)
-    
+
     -- Interaction (F)
     ContextActionService:BindAction("Interact", function(actionName, inputState, inputObject)
         if inputState == Enum.UserInputState.Begin then
             self:TryInteract()
         end
     end, false, Enum.KeyCode.F)
-    
+
     -- Inventaire (E)
     ContextActionService:BindAction("Inventory", function(actionName, inputState, inputObject)
         if inputState == Enum.UserInputState.Begin then
@@ -86,7 +86,7 @@ function PlayerController:SetupControls()
             end
         end
     end, false, Enum.KeyCode.E)
-    
+
     -- Artisanat (C)
     ContextActionService:BindAction("Crafting", function(actionName, inputState, inputObject)
         if inputState == Enum.UserInputState.Begin then
@@ -95,14 +95,14 @@ function PlayerController:SetupControls()
             end
         end
     end, false, Enum.KeyCode.C)
-    
+
     -- Touche d'annulation (Échap) - Pour annuler la construction, etc.
     ContextActionService:BindAction("Cancel", function(actionName, inputState, inputObject)
         if inputState == Enum.UserInputState.Begin then
             self:CancelCurrentAction()
         end
     end, false, Enum.KeyCode.Escape)
-    
+
     -- Touches d'action rapide pour outils (1-5)
     for i = 1, 5 do
         local keyCode = Enum.KeyCode["Number" .. i]
@@ -112,11 +112,11 @@ function PlayerController:SetupControls()
             end
         end, false, keyCode)
     end
-    
+
     -- Clic pour attaquer ou placer un bâtiment
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
-        
+
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             if self.characterState.isBuilding then
                 self:TryPlaceBuilding()
@@ -124,13 +124,13 @@ function PlayerController:SetupControls()
                 self:TryAttackOrHarvest()
             end
         end
-        
+
         -- Clic droit pour rotation lors de construction
         if input.UserInputType == Enum.UserInputType.MouseButton2 and self.characterState.isBuilding then
             self:RotateBuildingPreview()
         end
     end)
-    
+
     -- Mouvement de souris pour mettre à jour la position du prévisualisation de construction
     UserInputService.InputChanged:Connect(function(input, gameProcessed)
         if self.characterState.isBuilding and self.characterState.buildingPreview then
@@ -139,7 +139,7 @@ function PlayerController:SetupControls()
             end
         end
     end)
-    
+
     print("PlayerController: Contrôles configurés")
 end
 
@@ -149,11 +149,11 @@ function PlayerController:SetupCharacterEvents()
     if self.player.Character then
         self:SetupCharacter(self.player.Character)
     end
-    
+
     self.player.CharacterAdded:Connect(function(character)
         self:SetupCharacter(character)
     end)
-    
+
     print("PlayerController: Événements du personnage configurés")
 end
 
@@ -161,10 +161,10 @@ end
 function PlayerController:SetupCharacter(character)
     -- Référence à l'humanoid
     local humanoid = character:WaitForChild("Humanoid")
-    
+
     -- Configurer la vitesse initiale
     humanoid.WalkSpeed = self.walkSpeed
-    
+
     -- Réinitialiser l'état du personnage
     self.characterState = {
         isWalking = false,
@@ -176,17 +176,17 @@ function PlayerController:SetupCharacter(character)
         buildingPreview = nil,
         equippedTool = nil
     }
-    
+
     -- Événement de mouvement
     humanoid.Running:Connect(function(speed)
         self.characterState.isWalking = speed > 0.1
     end)
-    
+
     -- Événement de mort
     humanoid.Died:Connect(function()
         self:HandleCharacterDied()
     end)
-    
+
     -- Événement de changement d'état
     humanoid.StateChanged:Connect(function(oldState, newState)
         self:HandleStateChanged(oldState, newState)
@@ -196,7 +196,7 @@ end
 -- Configurer les événements du serveur
 function PlayerController:SetupServerEvents()
     local events = ReplicatedStorage:FindFirstChild("Events")
-    
+
     if events then
         -- Mise à jour de l'inventaire
         local updateInventoryEvent = events:FindFirstChild("UpdateInventory")
@@ -205,7 +205,7 @@ function PlayerController:SetupServerEvents()
                 self:HandleInventoryUpdate(inventoryData)
             end)
         end
-        
+
         -- Notification de début de construction
         local buildingStartEvent = events:FindFirstChild("BuildingStart")
         if buildingStartEvent then
@@ -213,7 +213,7 @@ function PlayerController:SetupServerEvents()
                 self:StartBuilding(itemId, previewInstance)
             end)
         end
-        
+
         -- Notification de sommeil
         local sleepEvent = events:FindFirstChild("Sleep")
         if sleepEvent then
@@ -221,7 +221,7 @@ function PlayerController:SetupServerEvents()
                 self:SetSleepingState(isSleeping)
             end)
         end
-        
+
         -- Notification générale
         local notificationEvent = events:FindFirstChild("Notification")
         if notificationEvent then
@@ -231,7 +231,7 @@ function PlayerController:SetupServerEvents()
                 end
             end)
         end
-        
+
         -- Notification de mort
         local deathEvent = events:FindFirstChild("Death")
         if deathEvent then
@@ -241,7 +241,7 @@ function PlayerController:SetupServerEvents()
                 end
             end)
         end
-        
+
         -- Notification de naissance/réapparition
         local birthEvent = events:FindFirstChild("Birth")
         if birthEvent then
@@ -252,7 +252,7 @@ function PlayerController:SetupServerEvents()
             end)
         end
     end
-    
+
     print("PlayerController: Événements du serveur configurés")
 end
 
@@ -262,12 +262,12 @@ function PlayerController:HandleInventoryUpdate(inventoryData)
     if self.uiController then
         self.uiController:UpdateInventory(inventoryData)
     end
-    
+
     -- Mettre à jour l'outil équipé
     if inventoryData.equipped and inventoryData.equipped.tool then
         local slotNumber = inventoryData.equipped.tool
         local item = inventoryData.items[slotNumber]
-        
+
         if item then
             self.characterState.equippedTool = {
                 id = item.id,
@@ -285,11 +285,11 @@ end
 function PlayerController:StartSprinting()
     local character = self.player.Character
     if not character or not character:FindFirstChild("Humanoid") then return end
-    
+
     local humanoid = character.Humanoid
     humanoid.WalkSpeed = self.runSpeed
     self.characterState.isRunning = true
-    
+
     -- Dans une implémentation réelle, envoyer un événement au serveur
     -- pour augmenter la consommation d'énergie pendant la course
     local events = ReplicatedStorage:FindFirstChild("Events")
@@ -299,7 +299,7 @@ function PlayerController:StartSprinting()
             playerActionEvent:FireServer("sprint_start")
         end
     end
-    
+
     print("PlayerController: Début du sprint")
 end
 
@@ -307,11 +307,11 @@ end
 function PlayerController:StopSprinting()
     local character = self.player.Character
     if not character or not character:FindFirstChild("Humanoid") then return end
-    
+
     local humanoid = character.Humanoid
     humanoid.WalkSpeed = self.walkSpeed
     self.characterState.isRunning = false
-    
+
     -- Dans une implémentation réelle, envoyer un événement au serveur
     local events = ReplicatedStorage:FindFirstChild("Events")
     if events then
@@ -320,7 +320,7 @@ function PlayerController:StopSprinting()
             playerActionEvent:FireServer("sprint_stop")
         end
     end
-    
+
     print("PlayerController: Fin du sprint")
 end
 
@@ -330,31 +330,31 @@ function PlayerController:TryInteract()
     if self.characterState.isSleeping then
         self:SetSleepingState(false)
         return
-    }
-    
+    end
+
     local character = self.player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    
+
     local rootPart = character.HumanoidRootPart
-    
+
     -- Lancer un rayon à partir de la caméra
     local mouse = self.player:GetMouse()
     local camera = workspace.CurrentCamera
-    
+
     local rayOrigin = camera.CFrame.Position
     local rayDirection = (mouse.Hit.Position - rayOrigin).Unit * self.interactionDistance
-    
+
     local ray = Ray.new(rayOrigin, rayDirection)
     local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
-    
+
     if hitPart then
         local model = hitPart:FindFirstAncestorOfClass("Model")
-        
+
         if model then
             -- Vérifier le type de modèle pour déterminer l'interaction
             local resourceType = model:GetAttribute("ResourceType")
             local buildingType = model:GetAttribute("BuildingType")
-            
+
             if resourceType then
                 -- Interagir avec une ressource
                 self:InteractWithResource(model, resourceType)
@@ -372,24 +372,24 @@ end
 function PlayerController:InteractWithResource(resourceModel, resourceType)
     -- Dans une implémentation réelle, envoyer un événement au serveur
     local events = ReplicatedStorage:FindFirstChild("Events")
-    
+
     if events then
         local playerActionEvent = events:FindFirstChild("PlayerAction")
         if playerActionEvent then
             self:PlayHarvestAnimation(resourceType)
-            
+
             playerActionEvent:FireServer("gather_resource", resourceType, resourceModel)
-            
+
             -- Mettre à jour l'état du personnage
             self.characterState.isHarvesting = true
             self.characterState.targetResource = resourceModel
-            
+
             -- Après un délai, remettre l'état à normal
             delay(2, function()
                 self.characterState.isHarvesting = false
                 self.characterState.targetResource = nil
             end)
-            
+
             print("PlayerController: Récolte de ressource - " .. resourceType)
         end
     end
@@ -399,18 +399,18 @@ end
 function PlayerController:PlayHarvestAnimation(resourceType)
     local character = self.player.Character
     if not character or not character:FindFirstChild("Humanoid") then return end
-    
+
     local humanoid = character.Humanoid
     local animator = humanoid:FindFirstChildOfClass("Animator")
-    
+
     if not animator then
         animator = Instance.new("Animator")
         animator.Parent = humanoid
     end
-    
+
     -- Animation selon le type d'outil nécessaire
     local animationId = "rbxassetid://507768375" -- Animation par défaut
-    
+
     -- Dans une implémentation réelle, charger les animations appropriées
     if resourceType == "wood" then
         animationId = "rbxassetid://12345720" -- Animation de hache
@@ -419,35 +419,35 @@ function PlayerController:PlayHarvestAnimation(resourceType)
     elseif resourceType == "berry_bush" or resourceType == "fiber" then
         animationId = "rbxassetid://12345722" -- Animation de cueillette
     end
-    
+
     -- Dans ce prototype, utiliser une animation de remplacement
     local animation = Instance.new("Animation")
     animation.AnimationId = animationId
-    
+
     local animTrack = animator:LoadAnimation(animation)
     animTrack:Play()
-    
+
     -- Auto-destruction de l'objet Animation après lecture
     animTrack.Stopped:Connect(function()
         animation:Destroy()
     end)
-}
+end
 
 -- Interagir avec un bâtiment
 function PlayerController:InteractWithBuilding(buildingModel, buildingType)
     -- Dans une implémentation réelle, envoyer un événement au serveur
     local events = ReplicatedStorage:FindFirstChild("Events")
-    
+
     if events then
         local playerActionEvent = events:FindFirstChild("PlayerAction")
         if playerActionEvent then
             local structureId = buildingModel:GetAttribute("StructureId")
-            
+
             if structureId then
                 playerActionEvent:FireServer("interact_building", structureId, "use")
-                
+
                 print("PlayerController: Utilisation du bâtiment - " .. buildingType)
-                
+
                 -- Cas spéciaux pour certains types de bâtiments
                 if buildingType == "wooden_bed" then
                     self:SetSleepingState(true)
@@ -455,28 +455,28 @@ function PlayerController:InteractWithBuilding(buildingModel, buildingType)
             end
         end
     end
-}
+end
 
 -- Définir l'état de sommeil
 function PlayerController:SetSleepingState(isSleeping)
     local character = self.player.Character
     if not character or not character:FindFirstChild("Humanoid") then return end
-    
+
     local humanoid = character.Humanoid
-    
+
     self.characterState.isSleeping = isSleeping
-    
+
     if isSleeping then
         -- Mettre le joueur en position allongée
         humanoid.Sit = true
-        
+
         -- Désactiver les contrôles pendant le sommeil
         ContextActionService:BindAction("DisableMoveForward", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterForward)
         ContextActionService:BindAction("DisableMoveBackward", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterBackward)
         ContextActionService:BindAction("DisableMoveLeft", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterLeft)
         ContextActionService:BindAction("DisableMoveRight", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterRight)
         ContextActionService:BindAction("DisableJump", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterJump)
-        
+
         -- Envoyer un événement au serveur
         local events = ReplicatedStorage:FindFirstChild("Events")
         if events then
@@ -485,19 +485,19 @@ function PlayerController:SetSleepingState(isSleeping)
                 playerActionEvent:FireServer("sleep")
             end
         end
-        
+
         print("PlayerController: Début du sommeil")
     else
         -- Remettre le joueur debout
         humanoid.Sit = false
-        
+
         -- Réactiver les contrôles
         ContextActionService:UnbindAction("DisableMoveForward")
         ContextActionService:UnbindAction("DisableMoveBackward")
         ContextActionService:UnbindAction("DisableMoveLeft")
         ContextActionService:UnbindAction("DisableMoveRight")
         ContextActionService:UnbindAction("DisableJump")
-        
+
         -- Envoyer un événement au serveur
         local events = ReplicatedStorage:FindFirstChild("Events")
         if events then
@@ -506,16 +506,16 @@ function PlayerController:SetSleepingState(isSleeping)
                 playerActionEvent:FireServer("wake_up")
             end
         end
-        
+
         print("PlayerController: Fin du sommeil")
     end
-}
+end
 
 -- Commencer la construction
 function PlayerController:StartBuilding(itemId, previewInstance)
     self.characterState.isBuilding = true
     self.characterState.buildingPreview = previewInstance
-    
+
     -- Dans une implémentation réelle, le prévisualisation serait créé ici
     if not previewInstance then
         -- Code pour créer le prévisualisation côté client
@@ -527,7 +527,7 @@ function PlayerController:StartBuilding(itemId, previewInstance)
         self.characterState.buildingPreview.CanCollide = false
         self.characterState.buildingPreview.Anchored = true
         self.characterState.buildingPreview.Material = Enum.Material.Plastic
-        
+
         -- Définir la taille en fonction du type d'objet
         if itemId == "wooden_wall" then
             self.characterState.buildingPreview.Size = Vector3.new(0.2, 3, 4)
@@ -548,146 +548,146 @@ function PlayerController:StartBuilding(itemId, previewInstance)
         else
             self.characterState.buildingPreview.Size = Vector3.new(1, 1, 1)
         end
-        
+
         self.characterState.buildingPreview.Parent = workspace
-    }
-    
+    end
+
     -- Mettre à jour la position du prévisualisation
     self:UpdateBuildingPreviewPosition()
-    
+
     print("PlayerController: Début de la construction - " .. itemId)
-}
+end
 
 -- Mettre à jour la position du prévisualisation de construction
 function PlayerController:UpdateBuildingPreviewPosition()
     if not self.characterState.isBuilding or not self.characterState.buildingPreview then return end
-    
+
     local character = self.player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    
+
     local rootPart = character.HumanoidRootPart
-    
+
     -- Obtenir la position à partir du raycast de la souris
     local mouse = self.player:GetMouse()
     local hitPosition = mouse.Hit.Position
-    
+
     -- Ajuster la hauteur en fonction du type d'objet
     local previewCFrame = CFrame.new(hitPosition)
-    
+
     -- Dans une implémentation réelle, on ajusterait aussi la rotation
     -- en fonction de la direction du personnage ou d'autres facteurs
-    
+
     -- Définir la position du prévisualisation
     self.characterState.buildingPreview.CFrame = previewCFrame
-    
+
     -- Vérifier si l'emplacement est valide et mettre à jour l'apparence
     local isValid = self:CheckBuildingPlacementValidity()
     self.characterState.buildingPreview.Color = isValid and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-}
+end
 
 -- Vérifier si l'emplacement est valide pour placer un bâtiment
 function PlayerController:CheckBuildingPlacementValidity()
     if not self.characterState.isBuilding or not self.characterState.buildingPreview then return false end
-    
+
     local character = self.player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
-    
+
     local rootPart = character.HumanoidRootPart
     local previewPosition = self.characterState.buildingPreview.Position
-    
+
     -- Vérifier la distance
     local distance = (rootPart.Position - previewPosition).Magnitude
     if distance > self.interactionDistance then
         return false
     end
-    
+
     -- Vérifier les collisions
     -- Dans une implémentation réelle, on vérifierait aussi les collisions avec d'autres bâtiments,
     -- les restrictions de zone de construction, etc.
-    
+
     return true
-}
+end
 
 -- Faire pivoter le prévisualisation de construction
 function PlayerController:RotateBuildingPreview()
     if not self.characterState.isBuilding or not self.characterState.buildingPreview then return end
-    
+
     -- Faire pivoter de 90 degrés autour de l'axe Y
     local currentCFrame = self.characterState.buildingPreview.CFrame
     local newCFrame = currentCFrame * CFrame.Angles(0, math.rad(90), 0)
-    
+
     self.characterState.buildingPreview.CFrame = newCFrame
-}
+end
 
 -- Essayer de placer un bâtiment
 function PlayerController:TryPlaceBuilding()
     if not self.characterState.isBuilding or not self.characterState.buildingPreview then return end
-    
+
     -- Vérifier si l'emplacement est valide
     if not self:CheckBuildingPlacementValidity() then
         -- Afficher un message d'erreur
         if self.uiController then
             self.uiController:DisplayMessage("Emplacement invalide pour la construction", "error", 2)
-        }
+        end
         return
-    }
-    
+    end
+
     -- Obtenir les données nécessaires
     local buildingPosition = self.characterState.buildingPreview.Position
     local buildingRotation = self.characterState.buildingPreview.CFrame - self.characterState.buildingPreview.Position
-    
+
     -- Envoyer l'événement de placement au serveur
     local events = ReplicatedStorage:FindFirstChild("Events")
     if events then
         local playerActionEvent = events:FindFirstChild("PlayerAction")
         if playerActionEvent then
             local itemId = self.characterState.buildingPreview:GetAttribute("BuildingType")
-            
+
             playerActionEvent:FireServer("place_building", itemId, buildingPosition, buildingRotation)
-            
+
             -- Terminer le mode construction
             self:EndBuilding()
-        }
-    }
-}
+        end
+    end
+end
 
 -- Terminer le mode construction
 function PlayerController:EndBuilding()
     if not self.characterState.isBuilding then return end
-    
+
     -- Nettoyer le prévisualisation
     if self.characterState.buildingPreview then
         self.characterState.buildingPreview:Destroy()
         self.characterState.buildingPreview = nil
-    }
-    
+    end
+
     self.characterState.isBuilding = false
-    
+
     print("PlayerController: Fin de la construction")
-}
+end
 
 -- Annuler l'action en cours
 function PlayerController:CancelCurrentAction()
     if self.characterState.isBuilding then
         self:EndBuilding()
-    }
-    
+    end
+
     if self.characterState.isSleeping then
         self:SetSleepingState(false)
-    }
-    
+    end
+
     if self.uiController then
         if self.uiController.interfaces.inventoryUI and self.uiController.interfaces.inventoryUI.isOpen then
             self.uiController:ToggleInventory(false)
-        }
-        
+        end
+
         if self.uiController.interfaces.craftingUI and self.uiController.interfaces.craftingUI.isOpen then
             self.uiController:ToggleCrafting(false)
-        }
-    }
-    
+        end
+    end
+
     print("PlayerController: Annulation de l'action en cours")
-}
+end
 
 -- Sélectionner un emplacement rapide (touches 1-5)
 function PlayerController:SelectQuickSlot(slotNumber)
@@ -698,75 +698,121 @@ function PlayerController:SelectQuickSlot(slotNumber)
         local playerActionEvent = events:FindFirstChild("PlayerAction")
         if playerActionEvent then
             playerActionEvent:FireServer("equip_slot", slotNumber)
-        }
-    }
-    
+        end
+    end
+
     print("PlayerController: Sélection de l'emplacement rapide " .. slotNumber)
-}
+end
 
 -- Essayer d'attaquer ou de récolter avec l'outil équipé
 function PlayerController:TryAttackOrHarvest()
     if self.characterState.isBuilding or self.characterState.isSleeping then return end
-    
+
     local character = self.player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    
+
     -- Vérifier si un outil est équipé
     if not self.characterState.equippedTool then
         print("PlayerController: Aucun outil équipé")
         return
-    }
-    
+    end
+
     -- Lancer un rayon à partir de la caméra
     local mouse = self.player:GetMouse()
     local camera = workspace.CurrentCamera
-    
+
     local rayOrigin = camera.CFrame.Position
     local rayDirection = (mouse.Hit.Position - rayOrigin).Unit * self.interactionDistance
-    
+
     local ray = Ray.new(rayOrigin, rayDirection)
     local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
-    
+
     if hitPart then
         local model = hitPart:FindFirstAncestorOfClass("Model")
-        
+
         if model then
             -- Vérifier le type de modèle
             local resourceType = model:GetAttribute("ResourceType")
-            
+
             if resourceType then
                 -- Récolter une ressource avec l'outil
                 self:HarvestResourceWithTool(model, resourceType)
             else
                 -- Attaquer une cible
                 self:AttackTarget(hitPart)
-            }
-        } else {
+            end
+        else
             -- Attaquer dans le vide
             self:PlayAttackAnimation()
-        }
-    } else {
+        end
+    else
         -- Attaquer dans le vide
         self:PlayAttackAnimation()
-    }
-}
+    end
+end
 
 -- Récolter une ressource avec l'outil équipé
 function PlayerController:HarvestResourceWithTool(resourceModel, resourceType)
     if not self.characterState.equippedTool then return end
-    
+
     -- Vérifier si l'outil est approprié pour ce type de ressource
     local toolType = self.characterState.equippedTool.type
     local isAppropriate = false
-    
+
     if (resourceType == "wood" and toolType == "axe") or
        ((resourceType == "stone" or resourceType:find("_ore")) and toolType == "pickaxe") then
         isAppropriate = true
-    }
-    
+    end
+
     -- Jouer l'animation appropriée
     if isAppropriate then
         self:PlayHarvestAnimation(resourceType)
-    } else {
+    else
         self:PlayAttackAnimation()
-    }
+    end
+end
+
+-- Attaquer une cible
+function PlayerController:AttackTarget(targetPart)
+    -- Dans une implémentation réelle, envoyer un événement au serveur
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if events then
+        local playerActionEvent = events:FindFirstChild("PlayerAction")
+        if playerActionEvent then
+            playerActionEvent:FireServer("attack", targetPart)
+        end
+    end
+
+    -- Jouer l'animation d'attaque
+    self:PlayAttackAnimation()
+end
+
+-- Jouer l'animation d'attaque
+function PlayerController:PlayAttackAnimation()
+    local character = self.player.Character
+    if not character or not character:FindFirstChild("Humanoid") then return end
+
+    local humanoid = character.Humanoid
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+
+    if not animator then
+        animator = Instance.new("Animator")
+        animator.Parent = humanoid
+    end
+
+    -- Animation d'attaque par défaut
+    local animationId = "rbxassetid://12345678" -- Remplacer par l'ID de l'animation d'attaque
+
+    local animation = Instance.new("Animation")
+    animation.AnimationId = animationId
+
+    local animTrack = animator:LoadAnimation(animation)
+    animTrack:Play()
+
+    -- Auto-destruction de l'objet Animation après lecture
+    animTrack.Stopped:Connect(function()
+        animation:Destroy()
+    end)
+end
+
+return PlayerController

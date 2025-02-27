@@ -149,7 +149,6 @@ function Server:Start()
     print("Server: Démarré avec succès")
 end
 
--- Démarrer le serveur
 Server:Start()
 
 return Server

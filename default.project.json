@@ -6,12 +6,72 @@
       "$className": "ReplicatedStorage",
       "Shared": {
         "$path": "src/shared"
+      },
+      "Assets": {
+        "$className": "Folder",
+        "Models": {
+          "$className": "Folder",
+          "Tools": {
+            "$className": "Folder",
+            "StoneTools": {
+              "$path": "assets/models/tools/stone"
+            },
+            "BronzeTools": {
+              "$path": "assets/models/tools/bronze"
+            },
+            "IronTools": {
+              "$path": "assets/models/tools/iron"
+            }
+          },
+          "Resources": {
+            "$className": "Folder",
+            "Trees": {
+              "$path": "assets/models/resources/trees"
+            },
+            "Rocks": {
+              "$path": "assets/models/resources/rocks"
+            },
+            "Plants": {
+              "$path": "assets/models/resources/plants"
+            },
+            "Ores": {
+              "$path": "assets/models/resources/ores"
+            }
+          },
+          "Buildings": {
+            "$className": "Folder",
+            "Structures": {
+              "$path": "assets/models/buildings/structures"
+            },
+            "Furniture": {
+              "$path": "assets/models/buildings/furniture"
+            }
+          },
+          "Characters": {
+            "$path": "assets/models/characters"
+          }
+        },
+        "Textures": {
+          "$path": "assets/textures"
+        },
+        "Sounds": {
+          "$path": "assets/sounds"
+        },
+        "UI": {
+          "$path": "assets/ui"
+        }
       }
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {
         "$path": "src/server"
+      }
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "GameData": {
+        "$path": "data"
       }
     },
     "StarterPlayer": {
@@ -35,17 +95,16 @@
         },
         "Structures": {
           "$className": "Model"
+        },
+        "Terrain": {
+          "$className": "Terrain"
         }
       }
     },
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Ambient": [
-          0.27450981736183167,
-          0.27450981736183167,
-          0.27450981736183167
-        ],
+        "Ambient": [0.27450981736183167, 0.27450981736183167, 0.27450981736183167],
         "Brightness": 2,
         "GlobalShadows": true,
         "Outlines": false,

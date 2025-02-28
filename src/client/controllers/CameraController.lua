@@ -11,7 +11,6 @@ local CAMERA_MODES = {
     FOLLOW = "follow",     -- Caméra qui suit le joueur (standard)
     FIRST_PERSON = "first", -- Vue à la première personne
     BUILDING = "building", -- Mode construction (plus éloigné et plus haut)
-    ORBIT = "orbit"        -- Orbite autour du joueur (pour l'inventaire/craft)
 }
 
 function CameraController.new()
@@ -48,11 +47,6 @@ function CameraController.new()
             distance = 20,
             height = 10,
             verticalAngle = 0.6
-        },
-        [CAMERA_MODES.ORBIT] = {
-            distance = 8,
-            height = 2,
-            verticalAngle = 0.3
         }
     }
     
@@ -123,9 +117,8 @@ function CameraController:ConnectEvents()
         
         if input.UserInputType == Enum.UserInputType.MouseWheel then
             local delta = input.Position.Z * self.zoomSpeed
-            local mode = self.modeSettings[self.mode]
             
-            if self.mode == CAMERA_MODES.FOLLOW or self.mode == CAMERA_MODES.BUILDING or self.mode == CAMERA_MODES.ORBIT then
+            if self.mode == CAMERA_MODES.FOLLOW or self.mode == CAMERA_MODES.BUILDING then
                 local newDistance = self.distance - delta
                 self.distance = math.clamp(newDistance, 2, 30)
             end
@@ -164,8 +157,6 @@ function CameraController:Update(dt)
         self:UpdateFirstPersonCamera(rootPart, humanoid, dt)
     elseif self.mode == CAMERA_MODES.BUILDING then
         self:UpdateBuildingCamera(rootPart, dt)
-    elseif self.mode == CAMERA_MODES.ORBIT then
-        self:UpdateOrbitCamera(rootPart, dt)
     end
 end
 
@@ -214,23 +205,6 @@ function CameraController:UpdateBuildingCamera(rootPart, dt)
     
     -- Appliquer un lissage aux mouvements de la caméra
     self.camera.CFrame = self.camera.CFrame:Lerp(CFrame.new(targetPosition, lookPosition), self.smoothness)
-end
-
-function CameraController:UpdateOrbitCamera(rootPart, dt)
-    -- En mode orbite, la caméra tourne autour du joueur
-    local center = rootPart.Position + Vector3.new(0, 1, 0)
-    
-    -- Faire tourner lentement la caméra
-    self.angle = self.angle + dt * 0.5
-    
-    -- Calculer la position de la caméra
-    local targetPosition = center +
-                          Vector3.new(math.cos(self.angle) * self.distance, 
-                                     self.distance * math.sin(self.verticalAngle), 
-                                     math.sin(self.angle) * self.distance)
-    
-    -- Définir la caméra
-    self.camera.CFrame = CFrame.new(targetPosition, center)
 end
 
 function CameraController:SetMode(mode)
@@ -297,22 +271,6 @@ end
 -- Quitter le mode construction
 function CameraController:ExitBuildingMode()
     if self.mode == CAMERA_MODES.BUILDING and self.previousMode then
-        self:SetMode(self.previousMode)
-        self.previousMode = nil
-    end
-end
-
--- Passer temporairement en mode orbite (pour l'inventaire/craft)
-function CameraController:EnterOrbitMode()
-    if self.mode ~= CAMERA_MODES.ORBIT then
-        self.previousMode = self.mode
-        self:SetMode(CAMERA_MODES.ORBIT)
-    end
-end
-
--- Quitter le mode orbite
-function CameraController:ExitOrbitMode()
-    if self.mode == CAMERA_MODES.ORBIT and self.previousMode then
         self:SetMode(self.previousMode)
         self.previousMode = nil
     end

@@ -7,6 +7,9 @@
       "Shared": {
         "$path": "src/shared"
       },
+      "Events": {
+        "$className": "Folder"
+      },
       "Assets": {
         "$className": "Folder",
         "Models": {
@@ -81,23 +84,36 @@
         "Client": {
           "$path": "src/client"
         }
+      },
+      "StarterCharacterScripts": {
+        "$className": "StarterCharacterScripts",
+        "CharacterScripts": {
+          "$path": "src/character"
+        }
       }
     },
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "FilteringEnabled": true
+        "FilteringEnabled": true,
+        "StreamingEnabled": true
       },
       "Map": {
         "$className": "Model",
         "Resources": {
-          "$className": "Model"
+          "$className": "Folder"
         },
         "Structures": {
-          "$className": "Model"
+          "$className": "Folder"
         },
         "Terrain": {
-          "$className": "Terrain"
+          "$className": "Terrain",
+          "$properties": {
+            "WaterWaveSize": 0.1,
+            "WaterWaveSpeed": 10,
+            "WaterReflectance": 0.1,
+            "WaterTransparency": 0.5
+          }
         }
       }
     },
@@ -110,13 +126,16 @@
         "Outlines": false,
         "Technology": "ShadowMap",
         "ClockTime": 14,
-        "GeographicLatitude": 0
+        "GeographicLatitude": 0,
+        "TimeOfDay": "14:00:00",
+        "ExposureCompensation": 0.2
       }
     },
     "SoundService": {
       "$className": "SoundService",
       "$properties": {
-        "RespectFilteringEnabled": true
+        "RespectFilteringEnabled": true,
+        "AmbientReverb": "Forest"
       }
     }
   }

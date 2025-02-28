@@ -2,15 +2,11 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local GameSettings = require(Shared.constants.GameSettings)
 local ItemTypes = require(Shared.constants.ItemTypes)
-
--- Services
-local Server = ServerScriptService:WaitForChild("Server")
-local Services = Server:WaitForChild("services")
-local InventoryService -- Sera initialisé dans Start()
 
 local ResourceService = {}
 ResourceService.__index = ResourceService
@@ -28,45 +24,45 @@ function ResourceService.new()
             name = "Arbre",
             model = "rbxassetid://12345680", -- À remplacer par un ID réel
             harvestTool = "axe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 3,
-            respawnTime = 300, -- 5 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.wood.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.wood.max or 3,
+            respawnTime = GameSettings.Resources.respawnTime.wood or 300, -- 5 minutes
             techLevel = "stone"
         },
         ["stone"] = {
             name = "Pierre",
             model = "rbxassetid://12345681", -- À remplacer par un ID réel
             harvestTool = "pickaxe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 2,
-            respawnTime = 600, -- 10 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.stone.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.stone.max or 2,
+            respawnTime = GameSettings.Resources.respawnTime.stone or 600, -- 10 minutes
             techLevel = "stone"
         },
         ["fiber"] = {
             name = "Plantes fibreuses",
             model = "rbxassetid://12345682", -- À remplacer par un ID réel
             harvestTool = nil, -- Pas d'outil requis
-            minHarvestAmount = 1,
-            maxHarvestAmount = 4,
-            respawnTime = 180, -- 3 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.fiber.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.fiber.max or 4,
+            respawnTime = GameSettings.Resources.respawnTime.fiber or 180, -- 3 minutes
             techLevel = "stone"
         },
         ["clay"] = {
             name = "Argile",
             model = "rbxassetid://12345683", -- À remplacer par un ID réel
             harvestTool = nil, -- Pas d'outil requis
-            minHarvestAmount = 1,
-            maxHarvestAmount = 3,
-            respawnTime = 480, -- 8 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.clay.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.clay.max or 3,
+            respawnTime = GameSettings.Resources.respawnTime.clay or 480, -- 8 minutes
             techLevel = "stone"
         },
         ["berry_bush"] = {
             name = "Buisson de baies",
             model = "rbxassetid://12345684", -- À remplacer par un ID réel
             harvestTool = nil, -- Pas d'outil requis
-            minHarvestAmount = 2,
-            maxHarvestAmount = 5,
-            respawnTime = 240, -- 4 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.berries.min or 2,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.berries.max or 5,
+            respawnTime = GameSettings.Resources.respawnTime.berry_bush or 240, -- 4 minutes
             techLevel = "stone",
             yieldType = "berries" -- Type d'objet à donner (différent du nom de la ressource)
         },
@@ -74,39 +70,46 @@ function ResourceService.new()
             name = "Minerai de cuivre",
             model = "rbxassetid://12345685", -- À remplacer par un ID réel
             harvestTool = "pickaxe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 2,
-            respawnTime = 900, -- 15 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.copper_ore.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.copper_ore.max or 2,
+            respawnTime = GameSettings.Resources.respawnTime.copper_ore or 900, -- 15 minutes
             techLevel = "stone"
         },
         ["tin_ore"] = {
             name = "Minerai d'étain",
             model = "rbxassetid://12345686", -- À remplacer par un ID réel
             harvestTool = "pickaxe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 2,
-            respawnTime = 900, -- 15 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.tin_ore.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.tin_ore.max or 2,
+            respawnTime = GameSettings.Resources.respawnTime.tin_ore or 900, -- 15 minutes
             techLevel = "stone"
         },
         ["iron_ore"] = {
             name = "Minerai de fer",
             model = "rbxassetid://12345687", -- À remplacer par un ID réel
             harvestTool = "pickaxe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 2,
-            respawnTime = 1200, -- 20 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.iron_ore.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.iron_ore.max or 2,
+            respawnTime = GameSettings.Resources.respawnTime.iron_ore or 1200, -- 20 minutes
             techLevel = "bronze"
         },
         ["gold_ore"] = {
             name = "Minerai d'or",
             model = "rbxassetid://12345688", -- À remplacer par un ID réel
             harvestTool = "pickaxe",
-            minHarvestAmount = 1,
-            maxHarvestAmount = 1,
-            respawnTime = 1800, -- 30 minutes
+            minHarvestAmount = GameSettings.Resources.harvestAmount.gold_ore.min or 1,
+            maxHarvestAmount = GameSettings.Resources.harvestAmount.gold_ore.max or 1,
+            respawnTime = GameSettings.Resources.respawnTime.gold_ore or 1800, -- 30 minutes
             techLevel = "iron"
         }
     }
+    
+    -- Références aux services
+    self.inventoryService = nil
+    self.playerService = nil
+    
+    -- Références aux RemoteEvents
+    self.remoteEvents = {}
     
     return self
 end
@@ -139,7 +142,7 @@ function ResourceService:GenerateResources()
         end
     end
     
-    -- Générer des ressources de test (dans une implémentation réelle, cela serait basé sur un algorithme de génération)
+    -- Générer des ressources de test
     self:GenerateTestResources(resourcesFolder)
     
     print("ResourceService: Ressources générées dans le monde")
@@ -200,10 +203,57 @@ function ResourceService:CreateResourceInstance(resourceType, parent, position)
     -- Définir la taille en fonction du type de ressource
     if resourceType == "wood" then
         primaryPart.Size = Vector3.new(2, 10, 2)
+        primaryPart.Color = Color3.fromRGB(121, 85, 58) -- Couleur bois
+        primaryPart.Material = Enum.Material.Wood
     elseif resourceType == "stone" or resourceType:find("_ore") then
         primaryPart.Size = Vector3.new(4, 3, 4)
+        primaryPart.Color = Color3.fromRGB(150, 150, 150) -- Couleur pierre
+        primaryPart.Material = Enum.Material.Rock
+        
+        -- Couleurs spécifiques pour les minerais
+        if resourceType == "copper_ore" then
+            primaryPart.Color = Color3.fromRGB(184, 115, 51) -- Couleur cuivre
+        elseif resourceType == "tin_ore" then
+            primaryPart.Color = Color3.fromRGB(200, 200, 200) -- Couleur étain
+        elseif resourceType == "iron_ore" then
+            primaryPart.Color = Color3.fromRGB(165, 150, 140) -- Couleur fer
+        elseif resourceType == "gold_ore" then
+            primaryPart.Color = Color3.fromRGB(212, 175, 55) -- Couleur or
+        end
+    elseif resourceType == "berry_bush" then
+        primaryPart.Size = Vector3.new(2, 2, 2)
+        primaryPart.Color = Color3.fromRGB(30, 100, 30) -- Couleur buisson
+        primaryPart.Material = Enum.Material.Grass
+        
+        -- Ajouter des baies visibles
+        local berries = Instance.new("Part")
+        berries.Name = "Berries"
+        berries.Size = Vector3.new(1, 1, 1)
+        berries.Position = primaryPart.Position + Vector3.new(0, 0.5, 0)
+        berries.Anchored = true
+        berries.CanCollide = false
+        berries.Color = Color3.fromRGB(200, 30, 30) -- Couleur baies rouges
+        berries.Material = Enum.Material.Plastic
+        berries.Shape = Enum.PartType.Ball
+        berries.Transparency = 0
+        berries.Parent = resource
+        
+        -- Weld pour les baies
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = primaryPart
+        weld.Part1 = berries
+        weld.Parent = resource
+    elseif resourceType == "fiber" then
+        primaryPart.Size = Vector3.new(2, 1, 2)
+        primaryPart.Color = Color3.fromRGB(120, 190, 80) -- Couleur plante
+        primaryPart.Material = Enum.Material.Grass
+    elseif resourceType == "clay" then
+        primaryPart.Size = Vector3.new(3, 1, 3)
+        primaryPart.Color = Color3.fromRGB(180, 150, 130) -- Couleur argile
+        primaryPart.Material = Enum.Material.Sand
     else
         primaryPart.Size = Vector3.new(2, 2, 2)
+        primaryPart.Material = Enum.Material.Plastic
     end
     
     -- Effectuer un RayCast pour placer la ressource sur le sol
@@ -238,16 +288,19 @@ function ResourceService:CreateResourceInstance(resourceType, parent, position)
         self:HandleResourceClick(player, resource)
     end)
     
+    -- Générer un ID unique pour cette ressource
+    local resourceId = resourceType .. "_" .. tostring(resource.Name) .. "_" .. tostring(resource:GetDebugId())
+    
     -- Ajouter l'instance au parent
     resource.Parent = parent
     
     -- Stocker la référence pour une utilisation ultérieure
-    local resourceId = resourceType .. "_" .. tostring(resource:GetDebugId())
     self.resources[resourceId] = {
         instance = resource,
         type = resourceType,
         harvestable = true,
-        respawnTime = resourceInfo.respawnTime
+        respawnTime = resourceInfo.respawnTime,
+        position = primaryPart.Position
     }
     
     return resource
@@ -258,11 +311,12 @@ function ResourceService:HandleResourceClick(player, resourceInstance)
     local resourceType = resourceInstance:GetAttribute("ResourceType")
     if not resourceType then return end
     
-    local resourceId = resourceType .. "_" .. tostring(resourceInstance:GetDebugId())
+    local resourceId = resourceType .. "_" .. tostring(resourceInstance.Name) .. "_" .. tostring(resourceInstance:GetDebugId())
     local resourceData = self.resources[resourceId]
     
     if not resourceData or not resourceData.harvestable then
         -- La ressource n'est pas récoltable (peut-être en cours de réapparition)
+        self:SendNotification(player, "Cette ressource n'est pas disponible actuellement", "info")
         return
     end
     
@@ -274,8 +328,13 @@ function ResourceService:HandleResourceClick(player, resourceInstance)
         self:HarvestResource(player, resourceId, toolMultiplier)
     else
         -- Informer le joueur qu'il a besoin de l'outil approprié
-        -- Dans une implémentation réelle, utilisez RemoteEvent
-        print("ResourceService: Le joueur " .. player.Name .. " a besoin de l'outil approprié pour récolter " .. resourceType)
+        local toolRequired = self.resourceTypes[resourceType].harvestTool
+        if toolRequired then
+            self:SendNotification(player, "Vous avez besoin d'un(e) " .. toolRequired .. " pour récolter cette ressource", "warning")
+        else
+            -- Tenter quand même de récolter mais avec un multiplicateur de 1
+            self:HarvestResource(player, resourceId, 1)
+        end
     end
 end
 
@@ -290,20 +349,32 @@ function ResourceService:CheckHarvestRequirements(player, resourceType)
     end
     
     -- Vérifier le niveau technologique requis
-    local playerService = Services.PlayerService
-    if playerService and resourceInfo.techLevel then
-        local playerData = playerService.playerData[player.UserId]
-        if playerData and playerData.techLevel then
-            -- TODO: Implémenter un système de niveaux technologiques des joueurs
-            -- Pour l'instant, considérons que tous les joueurs ont accès au niveau "stone"
+    if self.playerService and resourceInfo.techLevel then
+        local playerTechLevel = self:GetPlayerTechLevel(player)
+        
+        -- Vérifier si le joueur a le niveau technologique requis
+        local techLevels = {
+            ["stone"] = 1,
+            ["bronze"] = 2,
+            ["iron"] = 3,
+            ["gold"] = 4
+        }
+        
+        local requiredLevel = techLevels[resourceInfo.techLevel] or 1
+        local playerLevel = techLevels[playerTechLevel] or 1
+        
+        if playerLevel < requiredLevel then
+            self:SendNotification(player, "Vous n'avez pas le niveau technologique requis pour cette ressource", "error")
+            return false, 1
         end
     end
     
     -- Vérifier si le joueur a l'outil approprié équipé
-    local inventoryService = InventoryService
-    if not inventoryService then return false, 1 end
+    if not self.inventoryService then
+        return true, 1  -- Si InventoryService n'est pas disponible, autoriser par défaut
+    end
     
-    local inventory = inventoryService.playerInventories[player.UserId]
+    local inventory = self.inventoryService.playerInventories[player.UserId]
     if not inventory or not inventory.equipped then return false, 1 end
     
     -- Obtenir l'outil équipé
@@ -328,6 +399,16 @@ function ResourceService:CheckHarvestRequirements(player, resourceType)
     return false, 1
 end
 
+-- Obtenir le niveau technologique d'un joueur
+function ResourceService:GetPlayerTechLevel(player)
+    if self.playerService and self.playerService.playerData and self.playerService.playerData[player.UserId] then
+        return self.playerService.playerData[player.UserId].techLevel or "stone"
+    end
+    
+    -- Par défaut, retourner le niveau de base
+    return "stone"
+end
+
 -- Récolter une ressource
 function ResourceService:HarvestResource(player, resourceId, toolMultiplier)
     local resourceData = self.resources[resourceId]
@@ -347,14 +428,22 @@ function ResourceService:HarvestResource(player, resourceId, toolMultiplier)
     local itemType = resourceInfo.yieldType or resourceType
     
     -- Ajouter les objets à l'inventaire du joueur
-    local success = InventoryService:AddItemToInventory(player, itemType, amount)
+    local success = false
+    if self.inventoryService then
+        success = self.inventoryService:AddItemToInventory(player, itemType, amount)
+    else
+        -- Si InventoryService n'est pas disponible, considérer comme réussi
+        success = true
+    end
     
     if success then
         -- Informer le joueur
-        print("ResourceService: " .. player.Name .. " a récolté " .. amount .. " " .. itemType)
+        self:SendNotification(player, "Vous avez récolté " .. amount .. " " .. (ItemTypes[itemType] and ItemTypes[itemType].name or itemType), "success")
         
-        -- Dans une implémentation réelle, utilisez RemoteEvent pour informer le client
-        -- et pour jouer des animations/effets
+        -- Envoyer un événement au client pour les effets visuels et les animations
+        if self.remoteEvents.ResourceHarvest then
+            self.remoteEvents.ResourceHarvest:FireClient(player, itemType, amount)
+        end
         
         -- Cacher temporairement la ressource (apparence de "récolté")
         local resourceInstance = resourceData.instance
@@ -378,8 +467,10 @@ function ResourceService:HarvestResource(player, resourceId, toolMultiplier)
     else
         -- L'inventaire est plein ou autre problème
         resourceData.harvestable = true -- Remettre la ressource comme récoltable
-        print("ResourceService: L'inventaire de " .. player.Name .. " est plein")
+        self:SendNotification(player, "Votre inventaire est plein", "error")
     end
+    
+    return success, amount
 end
 
 -- Programmer la réapparition d'une ressource
@@ -421,17 +512,40 @@ function ResourceService:RespawnResource(resourceId)
     print("ResourceService: Ressource " .. resourceId .. " réapparue")
 end
 
+-- Envoi d'une notification au joueur
+function ResourceService:SendNotification(player, message, messageType)
+    if self.remoteEvents.Notification then
+        self.remoteEvents.Notification:FireClient(player, message, messageType or "info")
+    else
+        -- Fallback si RemoteEvent n'est pas disponible
+        print("Notification pour " .. player.Name .. ": " .. message)
+    end
+end
+
 -- Démarrer le service
-function ResourceService:Start()
+function ResourceService:Start(services)
     print("ResourceService: Démarrage...")
     
     -- Récupérer les références aux autres services
-    InventoryService = Services.InventoryService
+    self.inventoryService = services.InventoryService
+    self.playerService = services.PlayerService
+    
+    -- Récupérer les références aux RemoteEvents
+    local Events = ReplicatedStorage:FindFirstChild("Events")
+    if Events then
+        self.remoteEvents = {
+            ResourceHarvest = Events:FindFirstChild("ResourceHarvest"),
+            Notification = Events:FindFirstChild("Notification")
+        }
+    else
+        warn("ResourceService: Dossier Events non trouvé dans ReplicatedStorage")
+    end
     
     -- Générer les ressources initiales
     self:GenerateResources()
     
     print("ResourceService: Démarré avec succès")
+    return self
 end
 
 return ResourceService

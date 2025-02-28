@@ -743,7 +743,415 @@ local ItemTypes = {
         equipSlot = "head",
         temperatureModifier = 8, -- +8 résistance au froid
         model = "ReplicatedStorage.Assets.Models.Clothing.FurHat",
-        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.fur
+        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.fur_hat_icon"
+    },
+    
+    -- Bijoux et objets précieux
+    ["gold_necklace"] = {
+        name = "Collier en or",
+        description = "Un bijou précieux fait d'or pur.",
+        category = "jewelry",
+        stackable = false,
+        equipable = true,
+        equipSlot = "neck",
+        model = "ReplicatedStorage.Assets.Models.Jewelry.GoldNecklace",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Jewelry.gold_necklace_icon"
+    },
+    
+    ["gold_crown"] = {
+        name = "Couronne en or",
+        description = "Un symbole d'autorité et de richesse.",
+        category = "jewelry",
+        stackable = false,
+        equipable = true,
+        equipSlot = "head",
+        model = "ReplicatedStorage.Assets.Models.Jewelry.GoldCrown",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Jewelry.gold_crown_icon"
+    },
+    
+    -- Structures et éléments de construction
+    ["wooden_wall"] = {
+        name = "Mur en bois",
+        description = "Un mur simple pour délimiter un espace.",
+        category = "building",
+        stackable = true,
+        maxStack = 10,
+        placeable = true,
+        durability = 100,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Structures.WoodenWall",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Building.wooden_wall_icon"
+    },
+    
+    ["wooden_floor"] = {
+        name = "Sol en bois",
+        description = "Un plancher en bois pour votre construction.",
+        category = "building",
+        stackable = true,
+        maxStack = 10,
+        placeable = true,
+        durability = 80,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Structures.WoodenFloor",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Building.wooden_floor_icon"
+    },
+    
+    ["wooden_door"] = {
+        name = "Porte en bois",
+        description = "Une porte pour votre construction.",
+        category = "building",
+        stackable = true,
+        maxStack = 5,
+        placeable = true,
+        isDoor = true,
+        durability = 90,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Structures.WoodenDoor",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Building.wooden_door_icon"
+    },
+    
+    ["stone_wall"] = {
+        name = "Mur en pierre",
+        description = "Un mur solide en pierre.",
+        category = "building",
+        stackable = true,
+        maxStack = 10,
+        placeable = true,
+        durability = 200,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Structures.StoneWall",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Building.stone_wall_icon"
+    },
+    
+    ["brick_wall"] = {
+        name = "Mur en briques",
+        description = "Un mur élégant et solide en briques.",
+        category = "building",
+        stackable = true,
+        maxStack = 10,
+        placeable = true,
+        durability = 250,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Structures.BrickWall",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Building.brick_wall_icon"
+    },
+    
+    -- Conteneurs et stockage
+    ["wooden_chest"] = {
+        name = "Coffre en bois",
+        description = "Pour stocker vos objets.",
+        category = "furniture",
+        stackable = false,
+        placeable = true,
+        storage = 20, -- Nombre d'emplacements
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.WoodenChest",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.wooden_chest_icon"
+    },
+    
+    ["clay_pot"] = {
+        name = "Pot en argile",
+        description = "Pour stocker des liquides ou des aliments.",
+        category = "furniture",
+        stackable = true,
+        maxStack = 5,
+        placeable = true,
+        storage = 5,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.ClayPot",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.clay_pot_icon"
+    },
+    
+    -- Équipement d'artisanat avancé
+    ["anvil"] = {
+        name = "Enclume",
+        description = "Nécessaire pour forger des outils et armes en métal.",
+        category = "station",
+        stackable = false,
+        placeable = true,
+        forgingStation = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.Anvil",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.anvil_icon"
+    },
+    
+    ["loom"] = {
+        name = "Métier à tisser",
+        description = "Pour créer des vêtements et textiles.",
+        category = "station",
+        stackable = false,
+        placeable = true,
+        textileStation = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.Loom",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.loom_icon"
+    },
+    
+    ["tanning_rack"] = {
+        name = "Cadre de tannage",
+        description = "Pour transformer des peaux en cuir.",
+        category = "station",
+        stackable = false,
+        placeable = true,
+        tanningStation = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.TanningRack",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.tanning_rack_icon"
+    },
+    
+    ["pottery_wheel"] = {
+        name = "Tour de potier",
+        description = "Pour créer des objets en argile.",
+        category = "station",
+        stackable = false,
+        placeable = true,
+        potteryStation = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.PotteryWheel",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.pottery_wheel_icon"
+    },
+    
+    -- Graines et agriculture
+    ["wheat_seeds"] = {
+        name = "Graines de blé",
+        description = "À planter pour cultiver du blé.",
+        category = "seed",
+        stackable = true,
+        maxStack = 32,
+        plantable = true,
+        growsInto = "wheat_crop",
+        growthTime = 1200, -- 20 minutes
+        model = "ReplicatedStorage.Assets.Models.Food.WheatSeeds",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Food.wheat_seeds_icon"
+    },
+    
+    ["carrot_seeds"] = {
+        name = "Graines de carotte",
+        description = "À planter pour cultiver des carottes.",
+        category = "seed",
+        stackable = true,
+        maxStack = 32,
+        plantable = true,
+        growsInto = "carrot_crop",
+        growthTime = 900, -- 15 minutes
+        model = "ReplicatedStorage.Assets.Models.Food.CarrotSeeds",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Food.carrot_seeds_icon"
+    },
+    
+    -- Récoltes agricoles
+    ["wheat"] = {
+        name = "Blé",
+        description = "Peut être moulu pour obtenir de la farine.",
+        category = "crop",
+        stackable = true,
+        maxStack = 32,
+        model = "ReplicatedStorage.Assets.Models.Food.Wheat",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Food.wheat_icon"
+    },
+    
+    ["carrot"] = {
+        name = "Carotte",
+        description = "Un légume nourrissant.",
+        category = "food",
+        stackable = true,
+        maxStack = 16,
+        foodValue = 15,
+        spoilTime = 2400, -- 40 minutes
+        model = "ReplicatedStorage.Assets.Models.Food.Carrot",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Food.carrot_icon"
+    },
+    
+    -- Récipients et outils de transport
+    ["water_pouch"] = {
+        name = "Outre d'eau",
+        description = "Pour transporter de l'eau.",
+        category = "container",
+        stackable = false,
+        equipable = true,
+        equipSlot = "back",
+        capacity = 1,
+        model = "ReplicatedStorage.Assets.Models.Tools.WaterPouch",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tools.water_pouch_icon"
+    },
+    
+    ["basket"] = {
+        name = "Panier",
+        description = "Pour transporter des objets.",
+        category = "container",
+        stackable = false,
+        equipable = true,
+        equipSlot = "back",
+        capacity = 5,
+        model = "ReplicatedStorage.Assets.Models.Tools.Basket",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tools.basket_icon"
+    },
+    
+    -- Armes avancées
+    ["iron_shield"] = {
+        name = "Bouclier en fer",
+        description = "Offre une excellente protection contre les attaques.",
+        category = "weapon",
+        stackable = false,
+        equipable = true,
+        equipSlot = "offhand",
+        durability = 300,
+        defenseBonus = 40,
+        model = "ReplicatedStorage.Assets.Models.Tools.IronTools.IronShield",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tools.iron_shield_icon"
+    },
+    
+    ["bronze_mace"] = {
+        name = "Masse en bronze",
+        description = "Une arme contondante efficace.",
+        category = "weapon",
+        stackable = false,
+        equipable = true,
+        equipSlot = "tool",
+        toolType = "weapon",
+        durability = 150,
+        damage = 10,
+        model = "ReplicatedStorage.Assets.Models.Tools.BronzeTools.BronzeMace",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tools.bronze_mace_icon"
+    },
+    
+    -- Équipement d'armure avancé
+    ["iron_helmet"] = {
+        name = "Casque en fer",
+        description = "Protège efficacement la tête.",
+        category = "armor",
+        stackable = false,
+        equipable = true,
+        equipSlot = "head",
+        durability = 200,
+        defenseBonus = 15,
+        temperatureModifier = 5,
+        model = "ReplicatedStorage.Assets.Models.Clothing.IronHelmet",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.iron_helmet_icon"
+    },
+    
+    ["iron_chestplate"] = {
+        name = "Plastron en fer",
+        description = "Protège efficacement le torse.",
+        category = "armor",
+        stackable = false,
+        equipable = true,
+        equipSlot = "body",
+        durability = 300,
+        defenseBonus = 25,
+        temperatureModifier = 8,
+        model = "ReplicatedStorage.Assets.Models.Clothing.IronChestplate",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.iron_chestplate_icon"
+    },
+    
+    ["iron_leggings"] = {
+        name = "Jambières en fer",
+        description = "Protège efficacement les jambes.",
+        category = "armor",
+        stackable = false,
+        equipable = true,
+        equipSlot = "legs",
+        durability = 250,
+        defenseBonus = 20,
+        temperatureModifier = 6,
+        model = "ReplicatedStorage.Assets.Models.Clothing.IronLeggings",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.iron_leggings_icon"
+    },
+    
+    ["iron_boots"] = {
+        name = "Bottes en fer",
+        description = "Protège efficacement les pieds.",
+        category = "armor",
+        stackable = false,
+        equipable = true,
+        equipSlot = "feet",
+        durability = 200,
+        defenseBonus = 10,
+        temperatureModifier = 4,
+        model = "ReplicatedStorage.Assets.Models.Clothing.IronBoots",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Clothing.iron_boots_icon"
+    },
+    
+    -- Éléments de décoration et ambiance
+    ["torch"] = {
+        name = "Torche",
+        description = "Fournit de la lumière dans l'obscurité.",
+        category = "tool",
+        stackable = true,
+        maxStack = 10,
+        equipable = true,
+        equipSlot = "offhand",
+        placeable = true,
+        lightSource = true,
+        lightRadius = 15,
+        burnTime = 1800, -- 30 minutes
+        model = "ReplicatedStorage.Assets.Models.Tools.Torch",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tools.torch_icon"
+    },
+    
+    ["wooden_sign"] = {
+        name = "Panneau en bois",
+        description = "Pour écrire des messages.",
+        category = "furniture",
+        stackable = true,
+        maxStack = 5,
+        placeable = true,
+        customizable = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Furniture.WoodenSign",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Furniture.wooden_sign_icon"
+    },
+    
+    -- Ressources et matériaux spéciaux
+    ["gem"] = {
+        name = "Gemme",
+        description = "Une pierre précieuse rare et brillante.",
+        category = "material",
+        stackable = true,
+        maxStack = 10,
+        model = "ReplicatedStorage.Assets.Models.Resources.Gems.Gem",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Materials.gem_icon"
+    },
+    
+    ["obsidian"] = {
+        name = "Obsidienne",
+        description = "Un matériau volcanique noir et très dur.",
+        category = "material",
+        stackable = true,
+        maxStack = 16,
+        model = "ReplicatedStorage.Assets.Models.Resources.Rocks.Obsidian",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Materials.obsidian_icon"
+    },
+    
+    -- Objets tribaux et de cérémonie
+    ["wooden_totem"] = {
+        name = "Totem en bois",
+        description = "Un symbole spirituel et identitaire pour une tribu.",
+        category = "tribal",
+        stackable = false,
+        placeable = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Tribal.WoodenTotem",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tribal.wooden_totem_icon"
+    },
+    
+    ["tribal_drum"] = {
+        name = "Tambour tribal",
+        description = "Un instrument pour les cérémonies tribales.",
+        category = "tribal",
+        stackable = false,
+        placeable = true,
+        interactable = true,
+        model = "ReplicatedStorage.Assets.Models.Buildings.Tribal.TribalDrum",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Tribal.tribal_drum_icon"
+    },
+    
+    -- Ressources et matériaux de construction avancés
+    ["cement"] = {
+        name = "Ciment",
+        description = "Un matériau de construction avancé.",
+        category = "material",
+        stackable = true,
+        maxStack = 32,
+        model = "ReplicatedStorage.Assets.Models.Resources.Materials.Cement",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Materials.cement_icon"
+    },
+    
+    ["concrete"] = {
+        name = "Béton",
+        description = "Un matériau de construction très solide.",
+        category = "material",
+        stackable = true,
+        maxStack = 16,
+        model = "ReplicatedStorage.Assets.Models.Resources.Materials.Concrete",
+        icon = "ReplicatedStorage.Assets.UI.Icons.Materials.concrete_icon"
     }
 }
+
 return ItemTypes

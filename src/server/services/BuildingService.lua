@@ -31,7 +31,7 @@ function BuildingService.new()
         -- Bâtiments de base
         ["wooden_wall"] = {
             name = "Mur en bois",
-            model = "rbxassetid://12345690", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 100,
             techLevel = "stone",
             category = "building",
@@ -40,7 +40,7 @@ function BuildingService.new()
         },
         ["wooden_floor"] = {
             name = "Sol en bois",
-            model = "rbxassetid://12345691", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 80,
             techLevel = "stone",
             category = "building",
@@ -48,7 +48,7 @@ function BuildingService.new()
         },
         ["wooden_door"] = {
             name = "Porte en bois",
-            model = "rbxassetid://12345692", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 90,
             techLevel = "stone",
             category = "building",
@@ -59,7 +59,7 @@ function BuildingService.new()
         -- Meubles
         ["wooden_bed"] = {
             name = "Lit en bois",
-            model = "rbxassetid://12345693", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 60,
             techLevel = "stone",
             category = "furniture",
@@ -68,7 +68,7 @@ function BuildingService.new()
         },
         ["wooden_table"] = {
             name = "Table en bois",
-            model = "rbxassetid://12345694", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 50,
             techLevel = "stone",
             category = "furniture",
@@ -76,7 +76,7 @@ function BuildingService.new()
         },
         ["wooden_chair"] = {
             name = "Chaise en bois",
-            model = "rbxassetid://12345695", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 40,
             techLevel = "stone",
             category = "furniture",
@@ -84,7 +84,7 @@ function BuildingService.new()
         },
         ["campfire"] = {
             name = "Feu de camp",
-            model = "rbxassetid://12345696", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 30,
             techLevel = "stone",
             category = "furniture",
@@ -96,7 +96,7 @@ function BuildingService.new()
         },
         ["furnace"] = {
             name = "Four",
-            model = "rbxassetid://12345697", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 120,
             techLevel = "stone",
             category = "furniture",
@@ -108,7 +108,7 @@ function BuildingService.new()
         },
         ["anvil"] = {
             name = "Enclume",
-            model = "rbxassetid://12345698", -- À remplacer par un ID réel
+            model = "", -- À remplacer par un ID réel
             durability = 150,
             techLevel = "bronze",
             category = "furniture",

@@ -37,8 +37,8 @@ local ItemData = {
             category = "material",
             stackable = true,
             maxStack = 64,
-            model = "rbxassetid://12345678", -- ID de l'asset Roblox
-            icon = "rbxassetid://12345679", -- ID de l'icône 2D
+            model = "", -- ID de l'asset Roblox
+            icon = "", -- ID de l'icône 2D
             weight = 2
         },
         
@@ -48,8 +48,8 @@ local ItemData = {
             category = "material",
             stackable = true,
             maxStack = 64,
-            model = "rbxassetid://12345680",
-            icon = "rbxassetid://12345681",
+            model = "",
+            icon = "",
             weight = 1
         },
         
@@ -68,8 +68,8 @@ local ItemData = {
                 copper_ore = 1.5,
                 tin_ore = 1.5
             },
-            model = "rbxassetid://12345690",
-            icon = "rbxassetid://12345691",
+            model = "",
+            icon = "",
             weight = 5,
             techLevel = "stone"
         },

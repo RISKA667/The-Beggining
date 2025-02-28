@@ -7,16 +7,16 @@ AgeUI.__index = AgeUI
 
 function AgeUI.new()
     local self = setmetatable({}, AgeUI)
-    
+
     -- Référence au joueur local
     self.player = Players.LocalPlayer
-    
+
     -- Âge actuel
     self.age = 16
-    
+
     -- Interface ScreenGui
     self.gui = nil
-    
+
     return self
 end
 
@@ -25,7 +25,7 @@ function AgeUI:Initialize()
     self.gui = Instance.new("ScreenGui")
     self.gui.Name = "AgeUI"
     self.gui.ResetOnSpawn = false
-    
+
     -- Cadre pour l'affichage de l'âge
     local ageFrame = Instance.new("Frame")
     ageFrame.Name = "AgeFrame"
@@ -35,21 +35,21 @@ function AgeUI:Initialize()
     ageFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     ageFrame.BorderSizePixel = 0
     ageFrame.Parent = self.gui
-    
+
     -- Arrondir les coins
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(0, 8)
     uiCorner.Parent = ageFrame
-    
+
     -- Icône pour représenter l'âge (une horloge ou un sablier)
     local ageIcon = Instance.new("ImageLabel")
     ageIcon.Name = "AgeIcon"
     ageIcon.Size = UDim2.new(0, 25, 0, 25)
     ageIcon.Position = UDim2.new(0, 5, 0.5, -12.5)
     ageIcon.BackgroundTransparency = 1
-    ageIcon.Image = "rbxassetid://12345710" -- À remplacer par un ID réel
+    ageIcon.Image = "rbxassetid://12345710" -- Remplacer par un ID réel
     ageIcon.Parent = ageFrame
-    
+
     -- Étiquette "Âge:"
     local ageLabel = Instance.new("TextLabel")
     ageLabel.Name = "AgeLabel"
@@ -62,7 +62,7 @@ function AgeUI:Initialize()
     ageLabel.Font = Enum.Font.SourceSansBold
     ageLabel.TextXAlignment = Enum.TextXAlignment.Left
     ageLabel.Parent = ageFrame
-    
+
     -- Valeur de l'âge
     local ageValue = Instance.new("TextLabel")
     ageValue.Name = "AgeValue"
@@ -75,7 +75,7 @@ function AgeUI:Initialize()
     ageValue.Font = Enum.Font.SourceSans
     ageValue.TextXAlignment = Enum.TextXAlignment.Left
     ageValue.Parent = ageFrame
-    
+
     -- Date et heure en jeu
     local dateTimeFrame = Instance.new("Frame")
     dateTimeFrame.Name = "DateTimeFrame"
@@ -85,21 +85,21 @@ function AgeUI:Initialize()
     dateTimeFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     dateTimeFrame.BorderSizePixel = 0
     dateTimeFrame.Parent = self.gui
-    
+
     -- Arrondir les coins
     local dateTimeCorner = Instance.new("UICorner")
     dateTimeCorner.CornerRadius = UDim.new(0, 8)
     dateTimeCorner.Parent = dateTimeFrame
-    
+
     -- Icône pour l'horloge
     local clockIcon = Instance.new("ImageLabel")
     clockIcon.Name = "ClockIcon"
     clockIcon.Size = UDim2.new(0, 25, 0, 25)
     clockIcon.Position = UDim2.new(0, 5, 0.5, -12.5)
     clockIcon.BackgroundTransparency = 1
-    clockIcon.Image = "rbxassetid://12345711" -- À remplacer par un ID réel
+    clockIcon.Image = "rbxassetid://12345711" -- Remplacer par un ID réel
     clockIcon.Parent = dateTimeFrame
-    
+
     -- Heure en jeu
     local timeLabel = Instance.new("TextLabel")
     timeLabel.Name = "TimeLabel"
@@ -112,7 +112,7 @@ function AgeUI:Initialize()
     timeLabel.Font = Enum.Font.SourceSans
     timeLabel.TextXAlignment = Enum.TextXAlignment.Left
     timeLabel.Parent = dateTimeFrame
-    
+
     -- Date en jeu
     local dateLabel = Instance.new("TextLabel")
     dateLabel.Name = "DateLabel"
@@ -125,31 +125,31 @@ function AgeUI:Initialize()
     dateLabel.Font = Enum.Font.SourceSans
     dateLabel.TextXAlignment = Enum.TextXAlignment.Left
     dateLabel.Parent = dateTimeFrame
-    
+
     -- Stocker les références importantes
     self.ageValue = ageValue
     self.timeLabel = timeLabel
     self.dateLabel = dateLabel
-    
+
     -- Ajouter l'interface au joueur
-    self.gui.Parent = self.player.PlayerGui
-    
+    self.gui.Parent = self.player:WaitForChild("PlayerGui")
+
     -- Mettre à jour l'interface avec les valeurs initiales
     self:UpdateAge(self.age)
-    
+
     -- Se connecter aux événements de mise à jour du temps
     self:ConnectToTimeEvents()
-    
+
     return self
 end
 
 -- Mettre à jour l'affichage de l'âge
 function AgeUI:UpdateAge(age)
     self.age = age
-    
+
     if self.ageValue then
         self.ageValue.Text = tostring(math.floor(age)) .. " ans"
-        
+
         -- Changer la couleur selon l'âge
         if age >= 50 then
             -- Rouge pour les âges élevés (proche de la mort naturelle)
@@ -170,15 +170,15 @@ end
 -- Mettre à jour l'affichage de l'heure
 function AgeUI:UpdateTime(timeInfo)
     if not timeInfo then return end
-    
+
     if self.timeLabel then
         self.timeLabel.Text = timeInfo.timeString or "00:00"
     end
-    
+
     if self.dateLabel then
         self.dateLabel.Text = "Jour " .. (timeInfo.gameDay or 1) .. ", An " .. (timeInfo.gameYear or 1)
     end
-    
+
     -- Mettre à jour l'apparence en fonction du moment de la journée
     if timeInfo.isDay and not timeInfo.isDawnOrDusk then
         -- Jour
@@ -195,14 +195,18 @@ end
 -- Se connecter aux événements de mise à jour du temps
 function AgeUI:ConnectToTimeEvents()
     local events = ReplicatedStorage:FindFirstChild("Events")
-    
+
     if events then
         local timeUpdateEvent = events:FindFirstChild("TimeUpdate")
         if timeUpdateEvent then
             timeUpdateEvent.OnClientEvent:Connect(function(timeInfo)
                 self:UpdateTime(timeInfo)
             end)
+        else
+            warn("TimeUpdate event not found in ReplicatedStorage")
         end
+    else
+        warn("Events folder not found in ReplicatedStorage")
     end
 end
 
@@ -217,12 +221,12 @@ function AgeUI:ShowAgeNotification(newAge)
     notification.BackgroundColor3 = Color3.fromRGB(40, 40, 100)
     notification.BorderSizePixel = 0
     notification.Parent = self.gui
-    
+
     -- Arrondir les coins
     local notifCorner = Instance.new("UICorner")
     notifCorner.CornerRadius = UDim.new(0, 10)
     notifCorner.Parent = notification
-    
+
     -- Texte de la notification
     local notifText = Instance.new("TextLabel")
     notifText.Name = "NotifText"
@@ -233,11 +237,11 @@ function AgeUI:ShowAgeNotification(newAge)
     notifText.TextSize = 16
     notifText.Font = Enum.Font.SourceSansBold
     notifText.Parent = notification
-    
+
     -- Animation d'apparition
     notification.Position = UDim2.new(0.5, -100, 0, -50)
     notification:TweenPosition(UDim2.new(0.5, -100, 0.3, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Bounce, 0.5, true)
-    
+
     -- Auto-destruction après 5 secondes
     delay(5, function()
         notification:TweenPosition(UDim2.new(0.5, -100, 0, -50), Enum.EasingDirection.In, Enum.EasingStyle.Quad, 0.5, true, function()

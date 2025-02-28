@@ -25,17 +25,15 @@ function Client:InitializeControllers()
     -- Créer et initialiser les contrôleurs
     self.controllers = {}
 
-    -- Initialiser le contrôleur de caméra en premier
+    -- Initialiser le contrôleur d'interface utilisateur en premier
+    self.controllers.UIController = controllers.UIController.new()
+    self.controllers.UIController:Initialize(ui)
+
+    -- Initialiser le contrôleur de caméra
     self.controllers.CameraController = controllers.CameraController.new()
     self.controllers.CameraController:Initialize()
 
-    -- Initialiser le contrôleur d'interface utilisateur avec accès aux autres contrôleurs
-    self.controllers.UIController = controllers.UIController.new()
-    self.controllers.UIController:Initialize(ui, {
-        CameraController = self.controllers.CameraController
-    })
-
-    -- Initialiser le contrôleur de joueur avec accès au contrôleur UI
+    -- Initialiser le contrôleur de joueur avec accès au contrôleur UI et Camera
     self.controllers.PlayerController = controllers.PlayerController.new()
     self.controllers.PlayerController:Initialize(self.controllers.UIController, {
         CameraController = self.controllers.CameraController
@@ -48,6 +46,18 @@ end
 function Client:ConnectToServerEvents()
     -- Dans une implémentation réelle, vous utiliseriez RemoteEvent/RemoteFunction
     -- Ces connexions sont maintenant gérées dans les contrôleurs individuels
+    -- Ajout de vérifications pour s'assurer que les contrôleurs gèrent les connexions
+    if self.controllers.PlayerController and self.controllers.PlayerController.ConnectToServerEvents then
+        self.controllers.PlayerController:ConnectToServerEvents()
+    end
+
+    if self.controllers.UIController and self.controllers.UIController.ConnectToServerEvents then
+        self.controllers.UIController:ConnectToServerEvents()
+    end
+
+    if self.controllers.CameraController and self.controllers.CameraController.ConnectToServerEvents then
+        self.controllers.CameraController:ConnectToServerEvents()
+    end
 
     print("Client: Connexion aux événements serveur établie")
 end
@@ -70,10 +80,15 @@ function Client:PreloadAssets()
         -- Autres assets
     }
 
-    -- Précharger en arrière-plan
+    -- Précharger en arrière-plan avec gestion des erreurs
     spawn(function()
         for _, assetId in ipairs(assetIds) do
-            game:GetService("ContentProvider"):PreloadAsync({assetId})
+            local success, errorMessage = pcall(function()
+                game:GetService("ContentProvider"):PreloadAsync({assetId})
+            end)
+            if not success then
+                warn("Erreur lors du préchargement de l'asset : " .. assetId .. " - " .. errorMessage)
+            end
             wait() -- Petit délai pour ne pas surcharger
         end
         print("Client: Préchargement des assets terminé")
@@ -99,7 +114,7 @@ function Client:Start()
     self:ConnectToServerEvents()
 
     -- Afficher un message de démarrage via le contrôleur UI
-    if self.controllers.UIController and self.controllers.UIController.interfaces.notificationUI then
+    if self.controllers.UIController and self.controllers.UIController.interfaces and self.controllers.UIController.interfaces.notificationUI then
         self.controllers.UIController:DisplayMessage("Bienvenue dans The Beginning", "info", 8)
     end
 

@@ -1,15 +1,14 @@
 -- src/shared/constants/GameSettings.lua
-
 local GameSettings = {
     -- Paramètres de temps
     Time = {
         yearInSeconds = 3600,       -- 1 heure réelle = 1 an dans le jeu
-        dayNightCycle = 600,        -- 10 minutes pour un cycle jour/nuit complet
+        dayNightCycle = 720,        -- 12 minutes pour un cycle jour/nuit complet
         dayLength = 420,            -- 7 minutes de jour
         nightLength = 180,          -- 3 minutes de nuit
         dawnDuskLength = 60,        -- 1 minute pour l'aube/crépuscule
     },
-    
+
     -- Paramètres des joueurs
     Player = {
         startingAge = 16,           -- Âge de départ
@@ -23,34 +22,34 @@ local GameSettings = {
         runSpeed = 24,              -- Vitesse de course
         interactionDistance = 5,    -- Distance d'interaction avec les objets
     },
-    
+
     -- Paramètres de survie
     Survival = {
         -- Faim
         maxHunger = 100,            -- Valeur maximale de faim
-        hungerDecayRate = 0.05,     -- Diminution par seconde
+        hungerDecayRate = 0.01,     -- Diminution par seconde (réévalué)
         criticalHungerThreshold = 15, -- Seuil critique
         hungerDamageAmount = 1,     -- Dégâts par tick quand affamé
-        
+
         -- Soif
         maxThirst = 100,            -- Valeur maximale de soif
-        thirstDecayRate = 0.08,     -- Diminution par seconde
+        thirstDecayRate = 0.02,     -- Diminution par seconde (réévalué)
         criticalThirstThreshold = 10, -- Seuil critique
         thirstDamageAmount = 2,     -- Dégâts par tick quand assoiffé
-        
+
         -- Énergie
         maxEnergy = 100,            -- Valeur maximale d'énergie
-        energyDecayRate = 0.03,     -- Diminution par seconde (éveil)
+        energyDecayRate = 0.005,    -- Diminution par seconde (éveil) (réévalué)
         energyRecoveryRate = 0.1,   -- Récupération par seconde (sommeil)
         criticalEnergyThreshold = 10, -- Seuil critique
-        
+
         -- Température
         idealTemperature = 50,      -- Température idéale (0-100)
         criticalColdThreshold = 20, -- Seuil de froid critique
         criticalHeatThreshold = 80, -- Seuil de chaleur critique
         temperatureDamageAmount = 1, -- Dégâts par tick en température critique
     },
-    
+
     -- Ressources
     Resources = {
         respawnTime = {
@@ -64,7 +63,7 @@ local GameSettings = {
             ["iron_ore"] = 1200,    -- 20 minutes
             ["gold_ore"] = 1800,    -- 30 minutes
         },
-        
+
         harvestAmount = {
             ["wood"] = {min = 1, max = 3},
             ["stone"] = {min = 1, max = 2},
@@ -76,7 +75,7 @@ local GameSettings = {
             ["iron_ore"] = {min = 1, max = 2},
             ["gold_ore"] = {min = 1, max = 1},
         },
-        
+
         toolRequirement = {
             ["wood"] = "axe",
             ["stone"] = "pickaxe",
@@ -88,7 +87,7 @@ local GameSettings = {
             ["iron_ore"] = "pickaxe",
             ["gold_ore"] = "pickaxe",
         },
-        
+
         techLevelRequirement = {
             ["wood"] = "stone",
             ["stone"] = "stone",
@@ -101,7 +100,7 @@ local GameSettings = {
             ["gold_ore"] = "iron",
         },
     },
-    
+
     -- Construction
     Building = {
         maxStructuresPerPlayer = 10,  -- Nombre max de structures par joueur
@@ -112,7 +111,7 @@ local GameSettings = {
             ["brick"] = 300,          -- Points de durabilité pour structures en brique
         },
     },
-    
+
     -- Tribus
     Tribe = {
         maxMembers = 20,              -- Nombre max de membres par tribu

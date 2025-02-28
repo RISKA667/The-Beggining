@@ -46,6 +46,476 @@ function TribeService.new()
     return self
 end
 
+-- Rétrograder un membre de la tribu
+function TribeService:DemoteMember(player, targetUserId)
+    local userId = player.UserId
+    
+    -- Vérifier si le joueur est dans une tribu
+    local tribeId = self.playerTribes[userId]
+    if not tribeId then
+        self:SendTribeActionResponse(player, "demote_member", false, "Vous n'êtes pas membre d'une tribu")
+        return
+    end
+    
+    local tribe = self.tribes[tribeId]
+    if not tribe then
+        self:SendTribeActionResponse(player, "demote_member", false, "Votre tribu est introuvable")
+        return
+    end
+    
+    -- Vérifier si le joueur est le chef de la tribu
+    local isLeader = false
+    for _, member in ipairs(tribe.members) do
+        if member.userId == userId and member.role == TRIBE_ROLES.LEADER then
+            isLeader = true
+            break
+        end
+    end
+    
+    if not isLeader then
+        self:SendTribeActionResponse(player, "demote_member", false, "Seul le chef de la tribu peut rétrograder des membres")
+        return
+    end
+    
+    -- Vérifier si la cible est membre de la tribu
+    local targetMemberIndex = nil
+    local targetMemberRole = nil
+    local targetMemberName = nil
+    for i, member in ipairs(tribe.members) do
+        if member.userId == targetUserId then
+            targetMemberIndex = i
+            targetMemberRole = member.role
+            targetMemberName = member.name
+            break
+        end
+    end
+    
+    if not targetMemberIndex then
+        self:SendTribeActionResponse(player, "demote_member", false, "Ce joueur n'est pas membre de votre tribu")
+        return
+    end
+    
+    -- Ne pas pouvoir rétrograder le chef (soi-même)
+    if targetMemberRole == TRIBE_ROLES.LEADER then
+        self:SendTribeActionResponse(player, "demote_member", false, "Vous ne pouvez pas rétrograder le chef de la tribu")
+        return
+    end
+    
+    -- Gérer la rétrogradation selon le rôle actuel
+    if targetMemberRole == TRIBE_ROLES.ELDER then
+        -- Rétrograder d'ancien à membre
+        tribe.members[targetMemberIndex].role = TRIBE_ROLES.MEMBER
+        
+        -- Ajouter un événement au journal
+        table.insert(tribe.log, {
+            type = "member_demoted",
+            time = os.time(),
+            demoter = userId,
+            target = targetUserId,
+            fromRole = TRIBE_ROLES.ELDER,
+            toRole = TRIBE_ROLES.MEMBER,
+            description = player.Name .. " a rétrogradé " .. targetMemberName .. " au rang de Membre"
+        })
+        
+    elseif targetMemberRole == TRIBE_ROLES.MEMBER then
+        -- Rétrograder de membre à novice
+        tribe.members[targetMemberIndex].role = TRIBE_ROLES.NOVICE
+        
+        -- Ajouter un événement au journal
+        table.insert(tribe.log, {
+            type = "member_demoted",
+            time = os.time(),
+            demoter = userId,
+            target = targetUserId,
+            fromRole = TRIBE_ROLES.MEMBER,
+            toRole = TRIBE_ROLES.NOVICE,
+            description = player.Name .. " a rétrogradé " .. targetMemberName .. " au rang de Novice"
+        })
+        
+    elseif targetMemberRole == TRIBE_ROLES.NOVICE then
+        -- Ne peut pas rétrograder davantage un novice
+        self:SendTribeActionResponse(player, "demote_member", false, "Ce membre est déjà un Novice et ne peut pas être rétrogradé davantage")
+        return
+    end
+    
+    -- Sauvegarder les données
+    self:SaveTribeData(tribeId)
+    
+    -- Envoyer une réponse au joueur
+    self:SendTribeActionResponse(player, "demote_member", true, "Vous avez rétrogradé " .. targetMemberName)
+    
+    -- Notifier le joueur cible s'il est en ligne
+    local targetPlayer = Players:GetPlayerByUserId(targetUserId)
+    if targetPlayer then
+        self:SendTribeActionResponse(targetPlayer, "demoted", true, "Vous avez été rétrogradé dans votre tribu")
+    end
+    
+    -- Notifier tous les membres de la tribu
+    self:NotifyTribeUpdate(tribeId)
+    
+    print("TribeService: " .. player.Name .. " a rétrogradé " .. targetMemberName)
+end
+
+-- Modifier la description de la tribu
+function TribeService:SetTribeDescription(player, newDescription)
+    local userId = player.UserId
+    
+    -- Vérifier si le joueur est dans une tribu
+    local tribeId = self.playerTribes[userId]
+    if not tribeId then
+        self:SendTribeActionResponse(player, "set_tribe_description", false, "Vous n'êtes pas membre d'une tribu")
+        return
+    end
+    
+    local tribe = self.tribes[tribeId]
+    if not tribe then
+        self:SendTribeActionResponse(player, "set_tribe_description", false, "Votre tribu est introuvable")
+        return
+    end
+    
+    -- Vérifier si le joueur a les permissions (chef ou ancien)
+    local hasPermission = false
+    for _, member in ipairs(tribe.members) do
+        if member.userId == userId and (member.role == TRIBE_ROLES.LEADER or member.role == TRIBE_ROLES.ELDER) then
+            hasPermission = true
+            break
+        end
+    end
+    
+    if not hasPermission then
+        self:SendTribeActionResponse(player, "set_tribe_description", false, "Vous n'avez pas la permission de modifier la description de la tribu")
+        return
+    end
+    
+    -- Nettoyer et valider la description
+    newDescription = newDescription or ""
+    if type(newDescription) ~= "string" then
+        newDescription = ""
+    end
+    
+    -- Limiter la taille de la description
+    if #newDescription > 500 then
+        newDescription = string.sub(newDescription, 1, 500)
+    end
+    
+    -- Sauvegarder l'ancienne description pour le journal
+    local oldDescription = tribe.description
+    
+    -- Mettre à jour la description
+    tribe.description = newDescription
+    
+    -- Ajouter un événement au journal
+    table.insert(tribe.log, {
+        type = "description_changed",
+        time = os.time(),
+        userId = userId,
+        description = player.Name .. " a modifié la description de la tribu"
+    })
+    
+    -- Sauvegarder les données
+    self:SaveTribeData(tribeId)
+    
+    -- Envoyer une réponse au joueur
+    self:SendTribeActionResponse(player, "set_tribe_description", true, "Description de la tribu mise à jour")
+    
+    -- Notifier tous les membres de la tribu
+    self:NotifyTribeUpdate(tribeId)
+    
+    print("TribeService: " .. player.Name .. " a modifié la description de la tribu " .. tribe.name)
+end
+
+-- Définir le territoire de la tribu
+function TribeService:SetTribeTerritory(player, centerPosition)
+    local userId = player.UserId
+    
+    -- Vérifier si le joueur est dans une tribu
+    local tribeId = self.playerTribes[userId]
+    if not tribeId then
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Vous n'êtes pas membre d'une tribu")
+        return
+    end
+    
+    local tribe = self.tribes[tribeId]
+    if not tribe then
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Votre tribu est introuvable")
+        return
+    end
+    
+    -- Vérifier si le joueur est le chef de la tribu
+    local isLeader = false
+    for _, member in ipairs(tribe.members) do
+        if member.userId == userId and member.role == TRIBE_ROLES.LEADER then
+            isLeader = true
+            break
+        end
+    end
+    
+    if not isLeader then
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Seul le chef de la tribu peut définir le territoire")
+        return
+    end
+    
+    -- Vérifier si la position est valide
+    if typeof(centerPosition) ~= "Vector3" then
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Position invalide")
+        return
+    end
+    
+    -- Vérifier si le joueur est proche de la position
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Impossible de déterminer votre position")
+        return
+    end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local distance = (rootPart.Position - centerPosition).Magnitude
+    
+    if distance > 10 then  -- Le joueur doit être à moins de 10 unités de la position
+        self:SendTribeActionResponse(player, "set_tribe_territory", false, "Vous devez être proche de l'emplacement choisi")
+        return
+    end
+    
+    -- Vérifier si le territoire n'est pas trop proche d'un autre territoire de tribu
+    local minDistanceBetweenTerritories = 200  -- 200 unités de distance minimale
+    
+    for otherTribeId, otherTribe in pairs(self.tribes) do
+        if otherTribeId ~= tribeId and otherTribe.territory and otherTribe.territory.center then
+            local otherCenter = otherTribe.territory.center
+            local distanceBetweenTerritories = (Vector3.new(otherCenter.x, otherCenter.y, otherCenter.z) - centerPosition).Magnitude
+            
+            if distanceBetweenTerritories < minDistanceBetweenTerritories then
+                self:SendTribeActionResponse(player, "set_tribe_territory", false, "Cet emplacement est trop proche du territoire d'une autre tribu")
+                return
+            end
+        end
+    end
+    
+    -- Mettre à jour le territoire de la tribu
+    tribe.territory.center = {
+        x = centerPosition.X,
+        y = centerPosition.Y,
+        z = centerPosition.Z
+    }
+    
+    -- Ajouter un événement au journal
+    table.insert(tribe.log, {
+        type = "territory_set",
+        time = os.time(),
+        userId = userId,
+        description = player.Name .. " a défini le territoire de la tribu"
+    })
+    
+    -- Sauvegarder les données
+    self:SaveTribeData(tribeId)
+    
+    -- Envoyer une réponse au joueur
+    self:SendTribeActionResponse(player, "set_tribe_territory", true, "Territoire de la tribu défini")
+    
+    -- Notifier tous les membres de la tribu
+    self:NotifyTribeUpdate(tribeId)
+    
+    print("TribeService: " .. player.Name .. " a défini le territoire de la tribu " .. tribe.name)
+end
+
+-- Obtenir les données d'une tribu
+function TribeService:GetTribeData(tribeId)
+    return self.tribes[tribeId]
+end
+
+-- Obtenir l'ID de la tribu d'un joueur
+function TribeService:GetPlayerTribeId(player)
+    local userId = typeof(player) == "number" and player or player.UserId
+    return self.playerTribes[userId]
+end
+
+-- Obtenir le rôle d'un joueur dans sa tribu
+function TribeService:GetPlayerRole(player)
+    local userId = typeof(player) == "number" and player or player.UserId
+    local tribeId = self.playerTribes[userId]
+    
+    if not tribeId or not self.tribes[tribeId] then
+        return nil
+    end
+    
+    for _, member in ipairs(self.tribes[tribeId].members) do
+        if member.userId == userId then
+            return member.role
+        end
+    end
+    
+    return nil
+end
+
+-- Vérifier si un joueur est dans la même tribu qu'un autre
+function TribeService:ArePlayersInSameTribe(player1, player2)
+    local userId1 = typeof(player1) == "number" and player1 or player1.UserId
+    local userId2 = typeof(player2) == "number" and player2 or player2.UserId
+    
+    local tribeId1 = self.playerTribes[userId1]
+    local tribeId2 = self.playerTribes[userId2]
+    
+    return tribeId1 and tribeId2 and tribeId1 == tribeId2
+end
+
+-- Notifier un joueur des informations de sa tribu
+function TribeService:NotifyPlayerTribeUpdate(player)
+    local userId = player.UserId
+    local tribeId = self.playerTribes[userId]
+    
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if not events then return end
+    
+    local tribeUpdateEvent = events:FindFirstChild("TribeUpdate")
+    if not tribeUpdateEvent then return end
+    
+    -- Préparer les données à envoyer
+    local updateData = nil
+    
+    if tribeId and self.tribes[tribeId] then
+        -- Le joueur est dans une tribu, envoyer les infos basiques
+        updateData = {
+            inTribe = true,
+            tribeId = tribeId,
+            tribeName = self.tribes[tribeId].name,
+            tribeDescription = self.tribes[tribeId].description,
+            memberCount = #self.tribes[tribeId].members,
+            role = self:GetPlayerRole(player)
+        }
+    else
+        -- Le joueur n'est pas dans une tribu
+        updateData = {
+            inTribe = false
+        }
+    end
+    
+    -- Envoyer les données au client
+    tribeUpdateEvent:FireClient(player, "player_tribe_update", updateData)
+end
+
+-- Notifier tous les membres d'une tribu
+function TribeService:NotifyTribeUpdate(tribeId)
+    local tribe = self.tribes[tribeId]
+    if not tribe then return end
+    
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if not events then return end
+    
+    local tribeUpdateEvent = events:FindFirstChild("TribeUpdate")
+    if not tribeUpdateEvent then return end
+    
+    -- Préparer les données détaillées
+    local detailedData = {
+        id = tribeId,
+        name = tribe.name,
+        description = tribe.description,
+        founder = tribe.founder,
+        creationTime = tribe.creationTime,
+        territory = tribe.territory,
+        members = {},
+        log = tribe.log
+    }
+    
+    -- N'inclure que les informations pertinentes sur les membres
+    for _, member in ipairs(tribe.members) do
+        table.insert(detailedData.members, {
+            userId = member.userId,
+            name = member.name,
+            role = member.role,
+            joinTime = member.joinTime,
+            online = member.online
+        })
+    end
+    
+    -- Envoyer les données à tous les membres
+    for _, member in ipairs(tribe.members) do
+        local memberPlayer = Players:GetPlayerByUserId(member.userId)
+        if memberPlayer then
+            -- Informations basiques pour tous les membres
+            self:NotifyPlayerTribeUpdate(memberPlayer)
+            
+            -- Informations détaillées
+            tribeUpdateEvent:FireClient(memberPlayer, "tribe_details_update", detailedData)
+        end
+    end
+end
+
+-- Envoyer une invitation de tribu à un joueur
+function TribeService:SendTribeInvitation(player, tribe, inviterName)
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if not events then return end
+    
+    local tribeUpdateEvent = events:FindFirstChild("TribeUpdate")
+    if not tribeUpdateEvent then return end
+    
+    -- Préparer les données d'invitation
+    local invitationData = {
+        tribeId = tribe.id,
+        tribeName = tribe.name,
+        inviter = inviterName,
+        expires = os.time() + 300  -- 5 minutes
+    }
+    
+    -- Envoyer l'invitation
+    tribeUpdateEvent:FireClient(player, "invitation", invitationData)
+    
+    -- Envoyer également une notification
+    local notificationEvent = events:FindFirstChild("Notification")
+    if notificationEvent then
+        notificationEvent:FireClient(player, inviterName .. " vous a invité à rejoindre la tribu " .. tribe.name, "info")
+    end
+end
+
+-- Envoyer une réponse d'action de tribu à un joueur
+function TribeService:SendTribeActionResponse(player, action, success, message, data)
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if not events then return end
+    
+    local tribeUpdateEvent = events:FindFirstChild("TribeUpdate")
+    if not tribeUpdateEvent then return end
+    
+    -- Préparer la réponse
+    local response = {
+        action = action,
+        success = success,
+        message = message,
+        data = data
+    }
+    
+    -- Envoyer la réponse
+    tribeUpdateEvent:FireClient(player, "action_response", response)
+    
+    -- Envoyer également une notification
+    local notificationEvent = events:FindFirstChild("Notification")
+    if notificationEvent then
+        notificationEvent:FireClient(player, message, success and "success" or "error")
+    end
+end
+
+-- Gérer un joueur qui se déconnecte
+function TribeService:HandlePlayerRemoving(player)
+    local userId = player.UserId
+    local tribeId = self.playerTribes[userId]
+    
+    if not tribeId or not self.tribes[tribeId] then return end
+    
+    -- Mettre à jour le statut en ligne du membre
+    for i, member in ipairs(self.tribes[tribeId].members) do
+        if member.userId == userId then
+            member.online = false
+            break
+        end
+    end
+    
+    -- Sauvegarder les données
+    self:SaveTribeData(tribeId)
+    
+    -- Notifier les autres membres de la tribu
+    self:NotifyTribeUpdate(tribeId)
+end
+
+return TribeService
+
 -- Initialiser le service
 function TribeService:Start(services)
     print("TribeService: Démarrage...")
@@ -67,6 +537,7 @@ function TribeService:Start(services)
     end)
     
     print("TribeService: Démarré avec succès")
+    return self
 end
 
 -- Configurer les événements RemoteEvent pour les tribus
@@ -80,9 +551,12 @@ function TribeService:SetupRemoteEvents()
     end
     
     -- Créer l'événement pour les actions de tribu
-    local tribeActionEvent = Instance.new("RemoteEvent")
-    tribeActionEvent.Name = "TribeAction"
-    tribeActionEvent.Parent = events
+    local tribeActionEvent = events:FindFirstChild("TribeAction")
+    if not tribeActionEvent then
+        tribeActionEvent = Instance.new("RemoteEvent")
+        tribeActionEvent.Name = "TribeAction"
+        tribeActionEvent.Parent = events
+    end
     
     -- Connecter l'événement aux fonctions de traitement
     tribeActionEvent.OnServerEvent:Connect(function(player, action, ...)
@@ -90,9 +564,12 @@ function TribeService:SetupRemoteEvents()
     end)
     
     -- Créer l'événement pour notifier les clients des changements de tribu
-    local tribeUpdateEvent = Instance.new("RemoteEvent")
-    tribeUpdateEvent.Name = "TribeUpdate"
-    tribeUpdateEvent.Parent = events
+    local tribeUpdateEvent = events:FindFirstChild("TribeUpdate")
+    if not tribeUpdateEvent then
+        tribeUpdateEvent = Instance.new("RemoteEvent")
+        tribeUpdateEvent.Name = "TribeUpdate"
+        tribeUpdateEvent.Parent = events
+    end
 end
 
 -- Charger les données de tribu pour un joueur
@@ -288,7 +765,8 @@ function TribeService:CreateTribe(player, tribeName, description)
                 time = os.time(),
                 description = "Tribu créée par " .. player.Name
             }
-        }
+        },
+        invites = {}  -- Liste des invitations envoyées
     }
     
     -- Ajouter la tribu à la liste
@@ -311,6 +789,8 @@ function TribeService:CreateTribe(player, tribeName, description)
     
     -- Notifier le joueur du changement de tribu
     self:NotifyPlayerTribeUpdate(player)
+    
+    return tribeId
 end
 
 -- Rejoindre une tribu (sur invitation)
@@ -747,3 +1227,119 @@ function TribeService:PromoteMember(player, targetUserId)
     -- Vérifier si le joueur est dans une tribu
     local tribeId = self.playerTribes[userId]
     if not tribeId then
+        self:SendTribeActionResponse(player, "promote_member", false, "Vous n'êtes pas membre d'une tribu")
+        return
+    end
+    
+    local tribe = self.tribes[tribeId]
+    if not tribe then
+        self:SendTribeActionResponse(player, "promote_member", false, "Votre tribu est introuvable")
+        return
+    end
+    
+    -- Vérifier si le joueur est le chef de la tribu
+    local isLeader = false
+    for _, member in ipairs(tribe.members) do
+        if member.userId == userId and member.role == TRIBE_ROLES.LEADER then
+            isLeader = true
+            break
+        end
+    end
+    
+    if not isLeader then
+        self:SendTribeActionResponse(player, "promote_member", false, "Seul le chef de la tribu peut promouvoir des membres")
+        return
+    end
+    
+    -- Vérifier si la cible est membre de la tribu
+    local targetMemberIndex = nil
+    local targetMemberRole = nil
+    local targetMemberName = nil
+    for i, member in ipairs(tribe.members) do
+        if member.userId == targetUserId then
+            targetMemberIndex = i
+            targetMemberRole = member.role
+            targetMemberName = member.name
+            break
+        end
+    end
+    
+    if not targetMemberIndex then
+        self:SendTribeActionResponse(player, "promote_member", false, "Ce joueur n'est pas membre de votre tribu")
+        return
+    end
+    
+    -- Gérer la promotion selon le rôle actuel
+    if targetMemberRole == TRIBE_ROLES.NOVICE then
+        -- Promouvoir de novice à membre
+        tribe.members[targetMemberIndex].role = TRIBE_ROLES.MEMBER
+        
+        -- Ajouter un événement au journal
+        table.insert(tribe.log, {
+            type = "member_promoted",
+            time = os.time(),
+            promoter = userId,
+            target = targetUserId,
+            fromRole = TRIBE_ROLES.NOVICE,
+            toRole = TRIBE_ROLES.MEMBER,
+            description = player.Name .. " a promu " .. targetMemberName .. " au rang de Membre"
+        })
+        
+        -- Sauvegarder les données
+        self:SaveTribeData(tribeId)
+        
+        -- Envoyer une réponse au joueur
+        self:SendTribeActionResponse(player, "promote_member", true, "Vous avez promu " .. targetMemberName .. " au rang de Membre")
+        
+        -- Notifier le joueur cible s'il est en ligne
+        local targetPlayer = Players:GetPlayerByUserId(targetUserId)
+        if targetPlayer then
+            self:SendTribeActionResponse(targetPlayer, "promoted", true, "Vous avez été promu au rang de Membre dans votre tribu")
+        end
+        
+        -- Notifier tous les membres de la tribu
+        self:NotifyTribeUpdate(tribeId)
+        
+        print("TribeService: " .. player.Name .. " a promu " .. targetMemberName .. " au rang de Membre")
+        
+    elseif targetMemberRole == TRIBE_ROLES.MEMBER then
+        -- Promouvoir de membre à ancien
+        tribe.members[targetMemberIndex].role = TRIBE_ROLES.ELDER
+        
+        -- Ajouter un événement au journal
+        table.insert(tribe.log, {
+            type = "member_promoted",
+            time = os.time(),
+            promoter = userId,
+            target = targetUserId,
+            fromRole = TRIBE_ROLES.MEMBER,
+            toRole = TRIBE_ROLES.ELDER,
+            description = player.Name .. " a promu " .. targetMemberName .. " au rang d'Ancien"
+        })
+        
+        -- Sauvegarder les données
+        self:SaveTribeData(tribeId)
+        
+        -- Envoyer une réponse au joueur
+        self:SendTribeActionResponse(player, "promote_member", true, "Vous avez promu " .. targetMemberName .. " au rang d'Ancien")
+        
+        -- Notifier le joueur cible s'il est en ligne
+        local targetPlayer = Players:GetPlayerByUserId(targetUserId)
+        if targetPlayer then
+            self:SendTribeActionResponse(targetPlayer, "promoted", true, "Vous avez été promu au rang d'Ancien dans votre tribu")
+        end
+        
+        -- Notifier tous les membres de la tribu
+        self:NotifyTribeUpdate(tribeId)
+        
+        print("TribeService: " .. player.Name .. " a promu " .. targetMemberName .. " au rang d'Ancien")
+        
+    elseif targetMemberRole == TRIBE_ROLES.ELDER then
+        -- Ne peut pas promouvoir un ancien plus haut
+        self:SendTribeActionResponse(player, "promote_member", false, "Ce membre est déjà un Ancien et ne peut pas être promu davantage")
+        
+    elseif targetMemberRole == TRIBE_ROLES.LEADER then
+        -- Ne peut pas promouvoir le chef
+        self:SendTribeActionResponse(player, "promote_member", false, "Vous ne pouvez pas promouvoir le chef de la tribu")
+    end
+end

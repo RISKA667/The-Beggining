@@ -100,14 +100,9 @@ function MiningAnimation.Create()
     -- Ajouter la séquence à l'animation
     keyframeSequence.Parent = animation
     
-    -- Génération d'un AnimationId à partir de la séquence d'animation
-    -- Note: Ce code ne fonctionnera pas tel quel car vous ne pouvez pas
-    -- générer un AnimationId directement dans le code côté client
     -- Dans une implémentation réelle, vous devrez télécharger l'animation
     -- dans Roblox Studio et utiliser l'ID obtenu
-    
-    -- Simulation d'un ID pour cet exemple
-    animation.AnimationId = "rbxassetid://0000000" -- À remplacer par un vrai ID
+    animation.AnimationId = "" -- Sera rempli après avoir téléchargé l'animation dans Studio
     
     return animation
 end
@@ -119,6 +114,7 @@ function MiningAnimation.Play(humanoid)
         return nil
     end
     
+    -- Vérifier si l'animateur existe déjà
     local animator = humanoid:FindFirstChildOfClass("Animator")
     if not animator then
         animator = Instance.new("Animator")
@@ -137,6 +133,11 @@ end
 
 -- Fonction auxiliaire pour jouer l'animation de minage depuis un outil
 function MiningAnimation.SetupToolAnimation(tool)
+    if not tool then
+        warn("MiningAnimation.SetupToolAnimation: Tool requis")
+        return nil
+    end
+    
     local animationScript = Instance.new("LocalScript")
     animationScript.Name = "MiningAnimationController"
     
@@ -154,9 +155,8 @@ function MiningAnimation.SetupToolAnimation(tool)
         -- Créer l'animation
         local animation = Instance.new("Animation")
         
-        -- Note: Dans une implémentation réelle, vous devriez utiliser un ID d'animation préenregistré
-        -- Cet ID est un placeholder
-        animation.AnimationId = "rbxassetid://12345678"
+        -- À remplacer par votre ID d'animation quand disponible
+        animation.AnimationId = ""
         
         -- Charger l'animation
         animTrack = humanoid:LoadAnimation(animation)
@@ -183,8 +183,8 @@ function MiningAnimation.SetupToolAnimation(tool)
             
             -- Jouer un son de minage
             local miningSound = Instance.new("Sound")
-            miningSound.SoundId = "rbxassetid://156466309" -- Son de minage
-            miningSound.Volume = 0.8
+            miningSound.SoundId = "" -- À remplacer par votre ID de son quand disponible
+            miningSound.Volume = a0.8
             miningSound.Parent = tool.Handle
             miningSound:Play()
             
@@ -213,32 +213,123 @@ function MiningAnimation.SetupToolAnimation(tool)
     return animationScript
 end
 
--- Fonction pour créer un KeyframeSequence et l'enregistrer
--- Cette fonction ne peut être utilisée qu'au niveau du serveur avec les bons droits
-function MiningAnimation.SaveToRoblox()
-    -- Ce code est fourni à titre d'exemple et ne fonctionnera pas tel quel
-    -- car l'enregistrement d'animations requiert des autorisations spéciales
-    
+-- Fonction pour créer un KeyframeSequence
+function MiningAnimation.CreateKeyframeSequence()
     local keyframeSequence = Instance.new("KeyframeSequence")
     keyframeSequence.Name = "MiningSequence"
     
-    -- Ajouter les keyframes comme dans la fonction Create()
-    -- ...
+    -- Keyframe 1: Position initiale
+    local keyframe1 = Instance.new("Keyframe")
+    keyframe1.Time = 0
     
-    -- Enregistrer dans Roblox
-    -- Cette partie ne fonctionnera pas dans un environnement normal
-    -- car elle nécessite des autorisations spéciales
-    local success, animationId = pcall(function()
+    local rightShoulder1 = Instance.new("Pose")
+    rightShoulder1.Name = "Right Shoulder"
+    rightShoulder1.CFrame = CFrame.new(1, 0.5, 0) * CFrame.Angles(math.rad(-30), math.rad(20), math.rad(0))
+    rightShoulder1.Parent = keyframe1
+    
+    local leftShoulder1 = Instance.new("Pose")
+    leftShoulder1.Name = "Left Shoulder"
+    leftShoulder1.CFrame = CFrame.new(-1, 0.5, 0) * CFrame.Angles(math.rad(-30), math.rad(-20), math.rad(0))
+    leftShoulder1.Parent = keyframe1
+    
+    local rightElbow1 = Instance.new("Pose")
+    rightElbow1.Name = "Right Elbow"
+    rightElbow1.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(-80), math.rad(0), math.rad(0))
+    rightElbow1.Parent = keyframe1
+    
+    local leftElbow1 = Instance.new("Pose")
+    leftElbow1.Name = "Left Elbow"
+    leftElbow1.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(-80), math.rad(0), math.rad(0))
+    leftElbow1.Parent = keyframe1
+    
+    keyframe1.Parent = keyframeSequence
+    
+    -- Keyframe 2: Balancement vers l'avant (impact)
+    local keyframe2 = Instance.new("Keyframe")
+    keyframe2.Time = 0.3
+    
+    local rightShoulder2 = Instance.new("Pose")
+    rightShoulder2.Name = "Right Shoulder"
+    rightShoulder2.CFrame = CFrame.new(1, 0.5, 0) * CFrame.Angles(math.rad(40), math.rad(20), math.rad(0))
+    rightShoulder2.Parent = keyframe2
+    
+    local leftShoulder2 = Instance.new("Pose")
+    leftShoulder2.Name = "Left Shoulder"
+    leftShoulder2.CFrame = CFrame.new(-1, 0.5, 0) * CFrame.Angles(math.rad(40), math.rad(-20), math.rad(0))
+    leftShoulder2.Parent = keyframe2
+    
+    local rightElbow2 = Instance.new("Pose")
+    rightElbow2.Name = "Right Elbow"
+    rightElbow2.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(-40), math.rad(0), math.rad(0))
+    rightElbow2.Parent = keyframe2
+    
+    local leftElbow2 = Instance.new("Pose")
+    leftElbow2.Name = "Left Elbow"
+    leftElbow2.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(-40), math.rad(0), math.rad(0))
+    leftElbow2.Parent = keyframe2
+    
+    local waist2 = Instance.new("Pose")
+    waist2.Name = "Waist"
+    waist2.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(10), math.rad(0), math.rad(0))
+    waist2.Parent = keyframe2
+    
+    keyframe2.Parent = keyframeSequence
+    
+    -- Keyframe 3: Retour à la position de départ
+    local keyframe3 = Instance.new("Keyframe")
+    keyframe3.Time = 0.6
+    
+    local rightShoulder3 = rightShoulder1:Clone()
+    rightShoulder3.Parent = keyframe3
+    
+    local leftShoulder3 = leftShoulder1:Clone()
+    leftShoulder3.Parent = keyframe3
+    
+    local rightElbow3 = rightElbow1:Clone()
+    rightElbow3.Parent = keyframe3
+    
+    local leftElbow3 = leftElbow1:Clone()
+    leftElbow3.Parent = keyframe3
+    
+    local waist3 = Instance.new("Pose")
+    waist3.Name = "Waist"
+    waist3.CFrame = CFrame.new(0, 0, 0) * CFrame.Angles(math.rad(0), math.rad(0), math.rad(0))
+    waist3.Parent = keyframe3
+    
+    keyframe3.Parent = keyframeSequence
+    
+    return keyframeSequence
+end
+
+-- Fonction pour enregistrer l'animation (à utiliser uniquement dans Studio avec les permissions)
+function MiningAnimation.SaveToRoblox()
+    local keyframeSequence = MiningAnimation.CreateKeyframeSequence()
+    
+    -- Cette fonction ne fonctionnera que dans Roblox Studio avec les permissions appropriées
+    local success, result = pcall(function()
         return game:GetService("AnimationService"):SaveAnimation(keyframeSequence)
     end)
     
     if success then
-        print("Animation enregistrée avec l'ID:", animationId)
-        return animationId
+        print("Animation enregistrée avec succès. ID:", result)
+        return result
     else
-        warn("Échec de l'enregistrement de l'animation:", animationId)
+        warn("Échec de l'enregistrement de l'animation:", result)
         return nil
     end
+end
+
+-- Créer les animations de récolte pour différents types d'outils
+function MiningAnimation.GetAnimationForTool(toolType)
+    local animations = {
+        ["axe"] = "", -- ID d'animation pour hache
+        ["pickaxe"] = "", -- ID d'animation pour pioche
+        ["shovel"] = "", -- ID d'animation pour pelle
+        ["hammer"] = ""  -- ID d'animation pour marteau
+    }
+    
+    -- Retourner l'ID d'animation approprié ou une animation générique
+    return animations[toolType] or ""
 end
 
 return MiningAnimation

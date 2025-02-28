@@ -1,9 +1,15 @@
 -- src/server/init.lua
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerScriptService = game:GetService("ServerScriptService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- Créer le dossier Events s'il n'existe pas
+-- Assurez-vous que nous sommes sur le serveur
+if not RunService:IsServer() then
+    error("Le script serveur a été exécuté dans un contexte client!")
+    return
+end
+
+-- Création du dossier Events dans ReplicatedStorage s'il n'existe pas
 local Events = ReplicatedStorage:FindFirstChild("Events")
 if not Events then
     Events = Instance.new("Folder")
@@ -11,154 +17,178 @@ if not Events then
     Events.Parent = ReplicatedStorage
 end
 
--- Importer les services
-local services = {}
-services.PlayerService = require(script.services.PlayerService)
-services.InventoryService = require(script.services.InventoryService)
-services.CraftingService = require(script.services.CraftingService)
-services.ResourceService = require(script.services.ResourceService)
-services.SurvivalService = require(script.services.SurvivalService)
-services.TimeService = require(script.services.TimeService)
-services.BuildingService = require(script.services.BuildingService)
-services.TribeService = require(script.services.TribeService)
-
-local Server = {}
-
--- Initialiser les services
-function Server:InitializeServices()
-    print("Server: Initialisation des services...")
-    
-    -- Créer les instances de service
-    self.services = {}
-    self.services.TimeService = services.TimeService.new()
-    self.services.PlayerService = services.PlayerService.new()
-    self.services.InventoryService = services.InventoryService.new()
-    self.services.CraftingService = services.CraftingService.new()
-    self.services.ResourceService = services.ResourceService.new()
-    self.services.SurvivalService = services.SurvivalService.new()
-    self.services.BuildingService = services.BuildingService.new()
-    self.services.TribeService = services.TribeService.new()
-    
-    -- Démarrer les services dans un ordre spécifique
-    -- Certains services peuvent dépendre d'autres
-    self.services.TimeService:Start(self.services)
-    self.services.PlayerService:Start(self.services)
-    self.services.InventoryService:Start(self.services)
-    self.services.ResourceService:Start(self.services)
-    self.services.CraftingService:Start(self.services)
-    self.services.SurvivalService:Start(self.services)
-    self.services.BuildingService:Start(self.services)
-    self.services.TribeService:Start(self.services)
-    
-    print("Server: Services initialisés avec succès")
+-- Création du dossier Shared dans ReplicatedStorage s'il n'existe pas
+local Shared = ReplicatedStorage:FindFirstChild("Shared")
+if not Shared then
+    warn("Dossier Shared non trouvé dans ReplicatedStorage. Certaines fonctionnalités pourraient ne pas fonctionner correctement.")
 end
 
--- Configurer les événements de communication client-serveur
-function Server:SetupRemoteEvents()
-    print("Server: Configuration des événements RemoteEvent...")
+-- Définition des chemins d'accès relatifs
+local services = {}
+
+-- Structure du Server pour référencer plus tard
+local Server = {
+    services = {},        -- Services initialisés
+    remoteEvents = {},    -- Références aux RemoteEvents
+    isInitialized = false -- État d'initialisation du serveur
+}
+
+-- Import des services
+local function LoadServices()
+    -- Importation des modules de service en utilisant les chemins relatifs
+    services.TimeService = require(script.services.TimeService)
+    services.PlayerService = require(script.services.PlayerService)
+    services.InventoryService = require(script.services.InventoryService)
+    services.CraftingService = require(script.services.CraftingService)
+    services.ResourceService = require(script.services.ResourceService)
+    services.SurvivalService = require(script.services.SurvivalService)
+    services.BuildingService = require(script.services.BuildingService)
+    services.TribeService = require(script.services.TribeService)
+
+    -- Initialisation des services
+    print("Server: Initialisation des services...")
     
-    -- Créer les RemoteEvents nécessaires
+    Server.services.TimeService = services.TimeService.new()
+    Server.services.PlayerService = services.PlayerService.new()
+    Server.services.InventoryService = services.InventoryService.new()
+    Server.services.ResourceService = services.ResourceService.new()
+    Server.services.CraftingService = services.CraftingService.new()
+    Server.services.SurvivalService = services.SurvivalService.new()
+    Server.services.BuildingService = services.BuildingService.new()
+    Server.services.TribeService = services.TribeService.new()
     
-    -- Mise à jour des statistiques
-    local updateStatsEvent = Instance.new("RemoteEvent")
-    updateStatsEvent.Name = "UpdateStats"
-    updateStatsEvent.Parent = Events
+    print("Server: Services chargés avec succès")
+end
+
+-- Configuration des RemoteEvents
+local function SetupRemoteEvents()
+    print("Server: Configuration des RemoteEvents...")
     
-    -- Mise à jour de l'inventaire
-    local updateInventoryEvent = Instance.new("RemoteEvent")
-    updateInventoryEvent.Name = "UpdateInventory"
-    updateInventoryEvent.Parent = Events
+    -- Tableau des RemoteEvents à créer
+    local eventsToCreate = {
+        "UpdateStats",        -- Mise à jour des statistiques du joueur
+        "UpdateInventory",    -- Mise à jour de l'inventaire
+        "UpdateRecipes",      -- Mise à jour des recettes débloquées
+        "TimeUpdate",         -- Mise à jour du temps in-game
+        "Death",              -- Notification de mort du joueur
+        "Birth",              -- Notification de naissance/respawn
+        "ResourceHarvest",    -- Notification de récolte de ressource
+        "CraftComplete",      -- Notification de fabrication terminée
+        "BuildingPlacement",  -- Notification de placement de bâtiment
+        "Notification",       -- Système de notification générique
+        "PlayerAction",       -- Actions générales du joueur
+        "TribeAction",        -- Actions liées aux tribus
+        "TribeUpdate"         -- Mise à jour des informations de tribu
+    }
     
-    -- Mise à jour des recettes
-    local updateRecipesEvent = Instance.new("RemoteEvent")
-    updateRecipesEvent.Name = "UpdateRecipes"
-    updateRecipesEvent.Parent = Events
-    
-    -- Mise à jour du temps in-game
-    local timeUpdateEvent = Instance.new("RemoteEvent")
-    timeUpdateEvent.Name = "TimeUpdate"
-    timeUpdateEvent.Parent = Events
-    
-    -- Mort du joueur
-    local deathEvent = Instance.new("RemoteEvent")
-    deathEvent.Name = "Death"
-    deathEvent.Parent = Events
-    
-    -- Naissance/Respawn
-    local birthEvent = Instance.new("RemoteEvent")
-    birthEvent.Name = "Birth"
-    birthEvent.Parent = Events
-    
-    -- Récolte de ressource
-    local resourceHarvestEvent = Instance.new("RemoteEvent")
-    resourceHarvestEvent.Name = "ResourceHarvest"
-    resourceHarvestEvent.Parent = Events
-    
-    -- Artisanat
-    local craftCompleteEvent = Instance.new("RemoteEvent")
-    craftCompleteEvent.Name = "CraftComplete"
-    craftCompleteEvent.Parent = Events
-    
-    -- Construction
-    local buildingPlacementEvent = Instance.new("RemoteEvent")
-    buildingPlacementEvent.Name = "BuildingPlacement"
-    buildingPlacementEvent.Parent = Events
-    
-    -- Notification
-    local notificationEvent = Instance.new("RemoteEvent")
-    notificationEvent.Name = "Notification"
-    notificationEvent.Parent = Events
-    
-    -- Actions générales du joueur
-    local playerActionEvent = Instance.new("RemoteEvent")
-    playerActionEvent.Name = "PlayerAction"
-    playerActionEvent.Parent = Events
-    
-    -- Événements de tribu
-    local tribeActionEvent = Instance.new("RemoteEvent")
-    tribeActionEvent.Name = "TribeAction"
-    tribeActionEvent.Parent = Events
-    
-    local tribeUpdateEvent = Instance.new("RemoteEvent")
-    tribeUpdateEvent.Name = "TribeUpdate"
-    tribeUpdateEvent.Parent = Events
-    
-    -- Connexion pour les actions des joueurs
-    playerActionEvent.OnServerEvent:Connect(function(player, actionType, ...)
-        self:HandlePlayerAction(player, actionType, ...)
-    end)
-    
-    -- Connexion pour les actions de tribu
-    tribeActionEvent.OnServerEvent:Connect(function(player, action, ...)
-        if self.services.TribeService then
-            self.services.TribeService:HandleTribeAction(player, action, ...)
+    -- Créer tous les RemoteEvents nécessaires
+    for _, eventName in ipairs(eventsToCreate) do
+        local event = Events:FindFirstChild(eventName)
+        if not event then
+            event = Instance.new("RemoteEvent")
+            event.Name = eventName
+            event.Parent = Events
         end
-    end)
+        
+        -- Stocker la référence pour un accès facile
+        Server.remoteEvents[eventName] = event
+    end
     
     print("Server: RemoteEvents configurés avec succès")
 end
 
--- Gérer les actions des joueurs
+-- Démarrage des services avec injection de dépendances
+local function StartServices()
+    print("Server: Démarrage des services...")
+    
+    -- Ordre de démarrage des services (pour gérer les dépendances)
+    local startOrder = {
+        "TimeService",
+        "PlayerService",
+        "InventoryService",
+        "ResourceService", 
+        "CraftingService",
+        "SurvivalService",
+        "BuildingService",
+        "TribeService"
+    }
+    
+    -- Démarrer les services dans l'ordre spécifié
+    for _, serviceName in ipairs(startOrder) do
+        local service = Server.services[serviceName]
+        if service and type(service.Start) == "function" then
+            -- Passer toutes les références de services pour l'injection de dépendances
+            local success, errorMsg = pcall(function()
+                service:Start(Server.services)
+            end)
+            
+            if not success then
+                warn("Erreur lors du démarrage du service " .. serviceName .. ": " .. tostring(errorMsg))
+            else
+                print("Server: " .. serviceName .. " démarré avec succès")
+            end
+        else
+            warn("Service " .. serviceName .. " introuvable ou méthode Start manquante")
+        end
+    end
+    
+    print("Server: Tous les services démarrés")
+end
+
+-- Configuration des gestionnaires d'événements
+local function SetupEventHandlers()
+    -- Gestionnaire d'action joueur
+    if Server.remoteEvents.PlayerAction then
+        Server.remoteEvents.PlayerAction.OnServerEvent:Connect(function(player, actionType, ...)
+            Server:HandlePlayerAction(player, actionType, ...)
+        end)
+    end
+    
+    -- Gestionnaire d'action tribu
+    if Server.remoteEvents.TribeAction then
+        Server.remoteEvents.TribeAction.OnServerEvent:Connect(function(player, action, ...)
+            if Server.services.TribeService then
+                Server.services.TribeService:HandleTribeAction(player, action, ...)
+            end
+        end)
+    end
+    
+    -- Événements de joueur
+    Players.PlayerAdded:Connect(function(player)
+        print("Server: Nouveau joueur connecté - " .. player.Name)
+        -- Les services individuels gèrent leur logique spécifique via leurs propres connexions
+    end)
+    
+    Players.PlayerRemoving:Connect(function(player)
+        print("Server: Joueur déconnecté - " .. player.Name)
+        -- Les services individuels gèrent leur logique spécifique via leurs propres connexions
+    end)
+end
+
+-- Gestionnaire central d'actions de joueur
 function Server:HandlePlayerAction(player, actionType, ...)
     local args = {...}
+    
+    -- Vérification de sécurité basique
+    if not player or not player:IsA("Player") or not actionType then
+        return
+    end
     
     if actionType == "craft" then
         -- Fabrication d'objet
         local recipeId = args[1]
+        if type(recipeId) ~= "string" then return end
+        
         local success, message = self.services.CraftingService:CraftItem(player, recipeId)
         
         -- Informer le client du résultat
-        local events = ReplicatedStorage:FindFirstChild("Events")
-        if events and success ~= nil then
-            local notificationEvent = events:FindFirstChild("Notification")
-            local craftCompleteEvent = events:FindFirstChild("CraftComplete")
-            
-            if notificationEvent then
-                notificationEvent:FireClient(player, message, success and "success" or "error")
+        if success ~= nil then
+            if self.remoteEvents.Notification then
+                self.remoteEvents.Notification:FireClient(player, message, success and "success" or "error")
             end
             
-            if craftCompleteEvent then
-                craftCompleteEvent:FireClient(player, recipeId, success, message)
+            if self.remoteEvents.CraftComplete then
+                self.remoteEvents.CraftComplete:FireClient(player, recipeId, success, message)
             end
         end
     elseif actionType == "use_item" then
@@ -166,33 +196,42 @@ function Server:HandlePlayerAction(player, actionType, ...)
         local slotNumber = args[1]
         local itemId = args[2]
         
-        -- Déterminer le type d'objet et l'action appropriée
-        local itemType = require(ReplicatedStorage.Shared.constants.ItemTypes)[itemId]
+        if type(slotNumber) ~= "number" or type(itemId) ~= "string" then return end
         
-        if not itemType then return end
+        -- Vérification de l'existence de l'item
+        local itemExists = false
+        if Shared then
+            local ItemTypes = require(Shared.constants.ItemTypes)
+            itemExists = ItemTypes[itemId] ~= nil
+        end
         
-        if itemType.category == "food" then
-            self.services.SurvivalService:ConsumeFood(player, itemId)
-        elseif itemType.category == "drink" then
-            self.services.SurvivalService:ConsumeDrink(player, itemId)
-        elseif itemType.category == "building" or itemType.category == "furniture" then
-            self.services.BuildingService:StartPlacement(player, itemId, slotNumber)
+        if not itemExists then return end
+        
+        -- Traiter selon la catégorie de l'item
+        if Shared then
+            local ItemTypes = require(Shared.constants.ItemTypes)
+            local itemType = ItemTypes[itemId]
+            
+            if itemType.category == "food" then
+                self.services.SurvivalService:ConsumeFood(player, itemId)
+            elseif itemType.category == "drink" then
+                self.services.SurvivalService:ConsumeDrink(player, itemId)
+            elseif itemType.category == "building" or itemType.category == "furniture" then
+                self.services.BuildingService:StartPlacement(player, itemId, slotNumber)
+            end
         end
     elseif actionType == "place_building" then
-        -- Placer un bâtiment ou un meuble
+        -- Placer un bâtiment
         local itemId = args[1]
         local position = args[2]
         local rotation = args[3]
         
+        if type(itemId) ~= "string" or typeof(position) ~= "Vector3" then return end
+        
         local success, message = self.services.BuildingService:PlaceBuilding(player, itemId, position, rotation)
         
-        -- Informer le client du résultat
-        local events = ReplicatedStorage:FindFirstChild("Events")
-        if events then
-            local buildingPlacementEvent = events:FindFirstChild("BuildingPlacement")
-            if buildingPlacementEvent then
-                buildingPlacementEvent:FireClient(player, itemId, success, message)
-            end
+        if self.remoteEvents.BuildingPlacement then
+            self.remoteEvents.BuildingPlacement:FireClient(player, itemId, success, message)
         end
     elseif actionType == "sleep" then
         -- Commencer à dormir
@@ -205,85 +244,91 @@ function Server:HandlePlayerAction(player, actionType, ...)
         local resourceType = args[1]
         local resourceInstance = args[2]
         
+        if type(resourceType) ~= "string" then return end
+        
         local success, amount = self.services.ResourceService:HarvestResource(player, resourceType, resourceInstance)
         
-        -- Informer le client du résultat
-        if success then
-            local events = ReplicatedStorage:FindFirstChild("Events")
-            if events then
-                local resourceHarvestEvent = events:FindFirstChild("ResourceHarvest")
-                if resourceHarvestEvent then
-                    resourceHarvestEvent:FireClient(player, resourceType, amount)
-                end
-            end
+        if success and self.remoteEvents.ResourceHarvest then
+            self.remoteEvents.ResourceHarvest:FireClient(player, resourceType, amount)
         end
     elseif actionType == "equip_slot" then
         -- Équiper un objet
         local slotNumber = args[1]
+        
+        if type(slotNumber) ~= "number" then return end
+        
         self.services.InventoryService:EquipItem(player, slotNumber)
     elseif actionType == "unequip_slot" then
         -- Déséquiper un objet
         local equipSlot = args[1]
+        
+        if type(equipSlot) ~= "string" then return end
+        
         self.services.InventoryService:UnequipItem(player, equipSlot)
-    elseif actionType == "sprint_start" then
-        -- Commencer à courir
-        -- Ajouter une logique supplémentaire si nécessaire
-    elseif actionType == "sprint_stop" then
-        -- Arrêter de courir
-        -- Ajouter une logique supplémentaire si nécessaire
     end
 end
 
--- Démarrer le serveur
-function Server:Start()
+-- Configuration de la gestion d'erreurs
+local function SetupErrorHandling()
+    -- Gestion de la fermeture du serveur
+    game:BindToClose(function()
+        print("Server: Sauvegarde des données avant fermeture...")
+        
+        local success, errorMsg = pcall(function()
+            -- Sauvegarder les données critiques
+            for _, player in ipairs(Players:GetPlayers()) do
+                -- Sauvegarder les données de tribu
+                if Server.services.TribeService then
+                    Server.services.TribeService:HandlePlayerRemoving(player)
+                end
+                
+                -- Sauvegarder les inventaires
+                if Server.services.InventoryService then 
+                    Server.services.InventoryService:HandlePlayerRemoving(player)
+                end
+                
+                -- Autres sauvegardes si nécessaire...
+            end
+        end)
+        
+        if not success then
+            warn("Erreur lors de la sauvegarde des données: " .. tostring(errorMsg))
+        else
+            print("Server: Sauvegarde effectuée avec succès")
+        end
+        
+        print("Server: Fermeture du serveur")
+    end)
+    
+    -- Autre gestion d'erreurs globale si nécessaire...
+end
+
+-- Point d'entrée principal
+local function Start()
     print("Server: Démarrage...")
     
-    -- Initialiser les services
-    self:InitializeServices()
+    -- Chargement des services
+    LoadServices()
     
-    -- Configurer les événements
-    self:SetupRemoteEvents()
+    -- Configuration des RemoteEvents
+    SetupRemoteEvents()
     
-    -- Configurer la gestion des erreurs
-    self:SetupErrorHandling()
+    -- Démarrage des services avec injection des dépendances
+    StartServices()
     
-    -- Connecter les événements de joueur au niveau du serveur
-    Players.PlayerAdded:Connect(function(player)
-        print("Server: Nouveau joueur connecté - " .. player.Name)
-        
-        -- Les services individuels gèrent leur propre logique de joueur
-    end)
+    -- Configuration des gestionnaires d'événements
+    SetupEventHandlers()
     
-    Players.PlayerRemoving:Connect(function(player)
-        print("Server: Joueur déconnecté - " .. player.Name)
-        
-        -- Les services individuels gèrent leur propre logique de déconnexion
-    end)
+    -- Configuration de la gestion d'erreurs
+    SetupErrorHandling()
+    
+    -- Marquer le serveur comme initialisé
+    Server.isInitialized = true
     
     print("Server: Démarré avec succès")
 end
 
--- Configurer une gestion robuste des erreurs
-function Server:SetupErrorHandling()
-    -- Gérer les erreurs de script et les journaliser correctement
-    game:BindToClose(function()
-        -- Sauvegarder les données critiques avant de fermer le serveur
-        pcall(function()
-            for _, player in ipairs(Players:GetPlayers()) do
-                if self.services.TribeService then
-                    self.services.TribeService:HandlePlayerRemoving(player)
-                end
-                
-                if self.services.InventoryService then 
-                    self.services.InventoryService:HandlePlayerRemoving(player)
-                end
-            end
-            
-            print("Server: Sauvegarde effectuée - Fermeture du serveur")
-        end)
-    end)
-end
-
-Server:Start()
+-- Démarrer le serveur
+Start()
 
 return Server

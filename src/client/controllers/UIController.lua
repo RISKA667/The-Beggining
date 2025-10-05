@@ -42,6 +42,7 @@ end
 
 function UIController:Initialize(uiModules, controllers)
     -- Stocker les références aux autres contrôleurs
+    self.cameraController = nil
     if controllers then
         self.cameraController = controllers.CameraController
     end
@@ -199,13 +200,13 @@ function UIController:UpdateRecipes(recipesData)
     
     -- Si c'est la première fois qu'on débloque une recette de niveau bronze/fer/or, afficher une notification
     if recipesData.techLevels then
-        if recipesData.techLevels.bronze and not self.playerData.recipes.techLevels.bronze then
+        if recipesData.techLevels.bronze and (not self.playerData.recipes.techLevels or not self.playerData.recipes.techLevels.bronze) then
             self:DisplayMessage("Vous avez débloqué l'âge du bronze!", "success", 8)
         end
-        if recipesData.techLevels.iron and not self.playerData.recipes.techLevels.iron then
+        if recipesData.techLevels.iron and (not self.playerData.recipes.techLevels or not self.playerData.recipes.techLevels.iron) then
             self:DisplayMessage("Vous avez débloqué l'âge du fer!", "success", 8)
         end
-        if recipesData.techLevels.gold and not self.playerData.recipes.techLevels.gold then
+        if recipesData.techLevels.gold and (not self.playerData.recipes.techLevels or not self.playerData.recipes.techLevels.gold) then
             self:DisplayMessage("Vous avez débloqué l'âge de l'or!", "success", 8)
         end
     end

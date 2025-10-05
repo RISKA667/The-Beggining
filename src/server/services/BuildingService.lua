@@ -267,7 +267,7 @@ function BuildingService:UpdatePreviewPosition(player)
     local orientation = CFrame.new(position, position + lookVector)
     
     -- Mettre à jour la position de l'aperçu
-    buildModeData.previewInstance:SetPrimaryPartCFrame(orientation)
+    buildModeData.previewInstance:PivotTo(orientation)
     
     -- Vérifier si l'emplacement est valide
     local isValid = self:CheckPlacementValidity(player, position, itemId)
@@ -331,7 +331,8 @@ function BuildingService:CheckPlacementValidity(player, position, itemId)
             local tribeData = self.tribeService:GetTribeData(tribeId)
             if tribeData and tribeData.territory and tribeData.territory.center then
                 local tribeCenter = tribeData.territory.center
-                local distanceFromTribes = (position - tribeCenter).Magnitude
+                local tribeCenterVec = Vector3.new(tribeCenter.x, tribeCenter.y, tribeCenter.z)
+                local distanceFromTribes = (position - tribeCenterVec).Magnitude
                 
                 if distanceFromTribes > maxDistance then
                     return false
@@ -405,21 +406,21 @@ function BuildingService:PlaceBuilding(player, itemId, position, rotation)
         if not self:UpdatePreviewPosition(player) then
             self:SendNotification(player, "Emplacement invalide pour la construction", "error")
             return false, "Emplacement invalide"
-        }
-    }
+        end
+    end
     
     -- Vérifier si le joueur a l'objet dans son inventaire
     if not self.inventoryService:HasItemInInventory(player, itemId, 1) then
         self:SendNotification(player, "Vous n'avez pas cet objet dans votre inventaire", "error")
         return false, "Objet manquant dans l'inventaire"
-    }
+    end
     
     -- Retirer l'objet de l'inventaire
     local success = self.inventoryService:RemoveItemFromInventory(player, itemId, 1)
     if not success then
         self:SendNotification(player, "Impossible de retirer l'objet de l'inventaire", "error")
         return false, "Erreur d'inventaire"
-    }
+    end
     
     -- Créer la structure dans le monde
     local structureInstance = self:CreateStructureInstance(itemId, position, rotation)
@@ -428,7 +429,7 @@ function BuildingService:PlaceBuilding(player, itemId, position, rotation)
         self.inventoryService:AddItemToInventory(player, itemId, 1)
         self:SendNotification(player, "Erreur lors de la création de la structure", "error")
         return false, "Erreur de création"
-    }
+    end
     
     -- Générer un ID pour la structure
     local structureId = "structure_" .. self.nextStructureId
@@ -448,7 +449,7 @@ function BuildingService:PlaceBuilding(player, itemId, position, rotation)
     -- Associer la structure au joueur
     if not self.playerStructures[userId] then
         self.playerStructures[userId] = {}
-    }
+    end
     self.playerStructures[userId][structureId] = true
     
     -- Définir les attributs de la structure
@@ -458,12 +459,12 @@ function BuildingService:PlaceBuilding(player, itemId, position, rotation)
     -- Si c'est un meuble interactif, ajouter un ClickDetector
     if self:IsInteractiveBuilding(itemId) then
         self:MakeBuildingInteractive(structureInstance, itemId)
-    }
+    end
     
     -- Annuler le mode construction
     if buildModeData then
         self:CancelPlacement(player)
-    }
+    end
     
     -- Notifier le joueur
     self:SendNotification(player, "Vous avez construit: " .. (ItemTypes[itemId] and ItemTypes[itemId].name or itemId), "success")
@@ -506,7 +507,7 @@ function BuildingService:CreateStructureInstance(itemId, position, rotation)
         primaryPart.Size = Vector3.new(1, 1, 2)
     else
         primaryPart.Size = Vector3.new(1, 1, 1)
-    }
+    end
     
     -- Définir l'apparence
     primaryPart.Material = Enum.Material.Wood
@@ -519,7 +520,7 @@ function BuildingService:CreateStructureInstance(itemId, position, rotation)
     elseif itemId == "campfire" then
         primaryPart.Material = Enum.Material.Neon
         primaryPart.Color = Color3.fromRGB(255, 100, 0)
-    }
+    end
     
     -- Positionner la partie principale
     primaryPart.CFrame = CFrame.new(position) * rotation
@@ -532,12 +533,12 @@ function BuildingService:CreateStructureInstance(itemId, position, rotation)
         structuresFolder = Instance.new("Folder")
         structuresFolder.Name = "Structures"
         structuresFolder.Parent = Workspace
-    }
+    end
     
     -- Si c'est une porte, ajouter une fonction d'ouverture/fermeture
     if itemId == "wooden_door" then
         self:SetupDoor(structureModel)
-    }
+    end
     
     -- Parenter au dossier de structures
     structureModel.Parent = structuresFolder
@@ -628,7 +629,7 @@ function BuildingService:MakeBuildingInteractive(structureInstance, itemId)
             self:HandleAnvilInteraction(player, structureId)
         end
     end)
-}
+end
 
 -- Gérer l'interaction avec un lit
 function BuildingService:HandleBedInteraction(player, structureId)
@@ -640,12 +641,12 @@ function BuildingService:HandleBedInteraction(player, structureId)
     if not self:CanPlayerInteractWithStructure(player, structureId) then
         self:SendNotification(player, "Vous n'avez pas accès à ce lit", "error")
         return
-    }
+    end
     
     -- Déclencher l'action de sommeil
     if self.remoteEvents.PlayerAction then
         self.remoteEvents.PlayerAction:FireClient(player, "sleep")
-    }
+    end
 end
 
 -- Gérer l'interaction avec un feu de camp
@@ -658,12 +659,12 @@ function BuildingService:HandleCampfireInteraction(player, structureId)
     if not self:CanPlayerInteractWithStructure(player, structureId) then
         self:SendNotification(player, "Vous n'avez pas accès à ce feu de camp", "error")
         return
-    }
+    end
     
     -- Ouvrir l'interface de cuisson pour le joueur (à implémenter)
     self:SendNotification(player, "Ouverture de l'interface de cuisson", "info")
     -- Interface à implémenter
-}
+end
 
 -- Gérer l'interaction avec un four
 function BuildingService:HandleFurnaceInteraction(player, structureId)
@@ -675,12 +676,12 @@ function BuildingService:HandleFurnaceInteraction(player, structureId)
     if not self:CanPlayerInteractWithStructure(player, structureId) then
         self:SendNotification(player, "Vous n'avez pas accès à ce four", "error")
         return
-    }
+    end
     
     -- Ouvrir l'interface de fonte pour le joueur (à implémenter)
     self:SendNotification(player, "Ouverture de l'interface de fonte", "info")
     -- Interface à implémenter
-}
+end
 
 -- Gérer l'interaction avec une enclume
 function BuildingService:HandleAnvilInteraction(player, structureId)
@@ -692,12 +693,12 @@ function BuildingService:HandleAnvilInteraction(player, structureId)
     if not self:CanPlayerInteractWithStructure(player, structureId) then
         self:SendNotification(player, "Vous n'avez pas accès à cette enclume", "error")
         return
-    }
+    end
     
     -- Ouvrir l'interface de forge pour le joueur (à implémenter)
     self:SendNotification(player, "Ouverture de l'interface de forge", "info")
     -- Interface à implémenter
-}
+end
 
 -- Vérifier si un joueur peut interagir avec une structure
 function BuildingService:CanPlayerInteractWithStructure(player, structureId)

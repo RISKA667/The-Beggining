@@ -63,6 +63,13 @@ function UIController:Initialize(uiModules, controllers)
     self.interfaces.notificationUI = uiModules.NotificationUI.new()
     self.interfaces.notificationUI:Initialize()
     
+    -- Nouvelles interfaces pour combat et farming
+    self.interfaces.combatUI = uiModules.CombatUI.new()
+    self.interfaces.combatUI:Initialize()
+    
+    self.interfaces.farmingUI = uiModules.FarmingUI.new()
+    self.interfaces.farmingUI:Initialize()
+    
     -- Mettre à jour les interfaces avec les données initiales
     self:UpdateAllInterfaces()
     
@@ -75,7 +82,8 @@ function UIController:Initialize(uiModules, controllers)
     print("UIController: Interfaces initialisées")
     
     -- Afficher un message de bienvenue
-    self:DisplayMessage("Bienvenue dans The Beginning", "system", 8)
+    self:DisplayMessage("🌟 Bienvenue dans The Beginning", "system", 8)
+    self:DisplayMessage("🛠️ Utilisez E pour l'inventaire, C pour le craft", "info", 6)
 end
 
 -- Connecter aux événements spécifiques des interfaces
@@ -335,6 +343,14 @@ function UIController:ToggleGameUI(visible)
     
     if self.interfaces.ageUI then
         self.interfaces.ageUI.gui.Enabled = visible
+    end
+    
+    if self.interfaces.combatUI then
+        self.interfaces.combatUI.gui.Enabled = visible
+    end
+    
+    if self.interfaces.farmingUI then
+        self.interfaces.farmingUI.gui.Enabled = visible
     end
     
     -- L'inventaire et le crafting sont toujours désactivés par défaut

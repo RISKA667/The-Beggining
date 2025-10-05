@@ -17,6 +17,8 @@ ui.InventoryUI = require(script.ui.InventoryUI)
 ui.CraftingUI = require(script.ui.CraftingUI)
 ui.AgeUI = require(script.ui.AgeUI)
 ui.NotificationUI = require(script.ui.NotificationUI)
+ui.CombatUI = require(script.ui.CombatUI)
+ui.FarmingUI = require(script.ui.FarmingUI)
 
 local Client = {}
 

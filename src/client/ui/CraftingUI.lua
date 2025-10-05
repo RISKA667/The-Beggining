@@ -59,55 +59,73 @@ function CraftingUI:Initialize()
     -- Cadre principal pour le craft
     self.craftingFrame = Instance.new("Frame")
     self.craftingFrame.Name = "CraftingFrame"
-    self.craftingFrame.Size = UDim2.new(0, 700, 0, 500)
-    self.craftingFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
-    self.craftingFrame.BackgroundTransparency = 0.2
-    self.craftingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    self.craftingFrame.Size = UDim2.new(0, 750, 0, 520)
+    self.craftingFrame.Position = UDim2.new(0.5, -375, 0.5, -260)
+    self.craftingFrame.BackgroundTransparency = 0.15
+    self.craftingFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     self.craftingFrame.BorderSizePixel = 0
     self.craftingFrame.Parent = self.gui
     
     -- Arrondir les coins
     local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = UDim.new(0, 10)
+    uiCorner.CornerRadius = UDim.new(0, 12)
     uiCorner.Parent = self.craftingFrame
+    
+    -- Effet de brillance subtil
+    local mainGradient = Instance.new("UIGradient")
+    mainGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(35, 35, 35)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 45, 45))
+    })
+    mainGradient.Rotation = 90
+    mainGradient.Parent = self.craftingFrame
     
     -- Titre de l'interface
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "TitleLabel"
-    titleLabel.Size = UDim2.new(1, 0, 0, 40)
+    titleLabel.Size = UDim2.new(1, 0, 0, 45)
     titleLabel.Position = UDim2.new(0, 0, 0, 0)
-    titleLabel.BackgroundTransparency = 0.5
-    titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    titleLabel.BackgroundTransparency = 0.3
+    titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     titleLabel.BorderSizePixel = 0
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Text = "Artisanat"
-    titleLabel.TextSize = 20
-    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "🔨 Artisanat"
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.GothamBold
     titleLabel.Parent = self.craftingFrame
     
     -- Arrondir les coins du titre
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.CornerRadius = UDim.new(0, 12)
     titleCorner.Parent = titleLabel
     
     -- Bouton de fermeture
     local closeButton = Instance.new("TextButton")
     closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 30, 0, 30)
-    closeButton.Position = UDim2.new(1, -35, 0, 5)
-    closeButton.BackgroundTransparency = 0.5
-    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.Size = UDim2.new(0, 35, 0, 35)
+    closeButton.Position = UDim2.new(1, -40, 0, 5)
+    closeButton.BackgroundTransparency = 0.3
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
     closeButton.BorderSizePixel = 0
     closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.Text = "X"
-    closeButton.TextSize = 20
-    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "✕"
+    closeButton.TextSize = 18
+    closeButton.Font = Enum.Font.GothamBold
     closeButton.Parent = titleLabel
     
     -- Arrondir les coins du bouton
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.CornerRadius = UDim.new(0, 10)
     buttonCorner.Parent = closeButton
+    
+    -- Effet hover
+    closeButton.MouseEnter:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+    end)
+    closeButton.MouseLeave:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    end)
     
     -- Onglets de catégories
     self:CreateCategoryTabs()
@@ -115,106 +133,136 @@ function CraftingUI:Initialize()
     -- Panneau de liste des recettes
     local recipeListFrame = Instance.new("ScrollingFrame")
     recipeListFrame.Name = "RecipeListFrame"
-    recipeListFrame.Size = UDim2.new(0, 250, 0, 410)
-    recipeListFrame.Position = UDim2.new(0, 10, 0, 80)
-    recipeListFrame.BackgroundTransparency = 0.7
-    recipeListFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    recipeListFrame.Size = UDim2.new(0, 270, 0, 425)
+    recipeListFrame.Position = UDim2.new(0, 15, 0, 85)
+    recipeListFrame.BackgroundTransparency = 0.5
+    recipeListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     recipeListFrame.BorderSizePixel = 0
-    recipeListFrame.ScrollBarThickness = 6
+    recipeListFrame.ScrollBarThickness = 4
     recipeListFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Sera ajusté dynamiquement
     recipeListFrame.TopImage = "rbxassetid://7123458627"
     recipeListFrame.MidImage = "rbxassetid://7123458627"
     recipeListFrame.BottomImage = "rbxassetid://7123458627"
     recipeListFrame.Parent = self.craftingFrame
     
+    local recipeListCorner = Instance.new("UICorner")
+    recipeListCorner.CornerRadius = UDim.new(0, 10)
+    recipeListCorner.Parent = recipeListFrame
+    
     -- Panneau de détail de recette
     local recipeDetailFrame = Instance.new("Frame")
     recipeDetailFrame.Name = "RecipeDetailFrame"
-    recipeDetailFrame.Size = UDim2.new(0, 420, 0, 410)
-    recipeDetailFrame.Position = UDim2.new(0, 270, 0, 80)
-    recipeDetailFrame.BackgroundTransparency = 0.7
-    recipeDetailFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    recipeDetailFrame.Size = UDim2.new(0, 445, 0, 425)
+    recipeDetailFrame.Position = UDim2.new(0, 295, 0, 85)
+    recipeDetailFrame.BackgroundTransparency = 0.5
+    recipeDetailFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     recipeDetailFrame.BorderSizePixel = 0
     recipeDetailFrame.Parent = self.craftingFrame
+    
+    local detailCorner = Instance.new("UICorner")
+    detailCorner.CornerRadius = UDim.new(0, 10)
+    detailCorner.Parent = recipeDetailFrame
     
     -- Nom de la recette
     local recipeName = Instance.new("TextLabel")
     recipeName.Name = "RecipeName"
-    recipeName.Size = UDim2.new(1, 0, 0, 40)
+    recipeName.Size = UDim2.new(1, 0, 0, 45)
     recipeName.Position = UDim2.new(0, 0, 0, 0)
-    recipeName.BackgroundTransparency = 0.7
-    recipeName.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    recipeName.BackgroundTransparency = 0.4
+    recipeName.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     recipeName.BorderSizePixel = 0
     recipeName.TextColor3 = Color3.fromRGB(255, 255, 255)
     recipeName.Text = "Sélectionnez une recette"
-    recipeName.TextSize = 18
-    recipeName.Font = Enum.Font.SourceSansBold
+    recipeName.TextSize = 16
+    recipeName.Font = Enum.Font.GothamBold
     recipeName.Parent = recipeDetailFrame
+    
+    local recipeNameCorner = Instance.new("UICorner")
+    recipeNameCorner.CornerRadius = UDim.new(0, 10)
+    recipeNameCorner.Parent = recipeName
     
     -- Description de la recette
     local recipeDescription = Instance.new("TextLabel")
     recipeDescription.Name = "RecipeDescription"
-    recipeDescription.Size = UDim2.new(1, 0, 0, 60)
-    recipeDescription.Position = UDim2.new(0, 0, 0, 50)
+    recipeDescription.Size = UDim2.new(1, -20, 0, 60)
+    recipeDescription.Position = UDim2.new(0, 10, 0, 55)
     recipeDescription.BackgroundTransparency = 1
-    recipeDescription.TextColor3 = Color3.fromRGB(220, 220, 220)
+    recipeDescription.TextColor3 = Color3.fromRGB(200, 200, 200)
     recipeDescription.Text = ""
-    recipeDescription.TextSize = 14
+    recipeDescription.TextSize = 13
     recipeDescription.TextWrapped = true
     recipeDescription.TextXAlignment = Enum.TextXAlignment.Left
     recipeDescription.TextYAlignment = Enum.TextYAlignment.Top
-    recipeDescription.Font = Enum.Font.SourceSans
+    recipeDescription.Font = Enum.Font.Gotham
     recipeDescription.Parent = recipeDetailFrame
     
     -- Image de l'objet résultat
     local resultImage = Instance.new("ImageLabel")
     resultImage.Name = "ResultImage"
-    resultImage.Size = UDim2.new(0, 100, 0, 100)
-    resultImage.Position = UDim2.new(0.5, -50, 0, 120)
-    resultImage.BackgroundTransparency = 1
+    resultImage.Size = UDim2.new(0, 110, 0, 110)
+    resultImage.Position = UDim2.new(0.5, -55, 0, 125)
+    resultImage.BackgroundTransparency = 0.4
+    resultImage.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    resultImage.BorderSizePixel = 0
     resultImage.Image = ""
     resultImage.Parent = recipeDetailFrame
+    
+    local resultImageCorner = Instance.new("UICorner")
+    resultImageCorner.CornerRadius = UDim.new(0, 10)
+    resultImageCorner.Parent = resultImage
     
     -- Titre pour les ingrédients
     local ingredientsTitle = Instance.new("TextLabel")
     ingredientsTitle.Name = "IngredientsTitle"
-    ingredientsTitle.Size = UDim2.new(1, 0, 0, 30)
-    ingredientsTitle.Position = UDim2.new(0, 0, 0, 230)
-    ingredientsTitle.BackgroundTransparency = 0.7
-    ingredientsTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ingredientsTitle.Size = UDim2.new(1, 0, 0, 32)
+    ingredientsTitle.Position = UDim2.new(0, 0, 0, 245)
+    ingredientsTitle.BackgroundTransparency = 0.4
+    ingredientsTitle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     ingredientsTitle.BorderSizePixel = 0
     ingredientsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ingredientsTitle.Text = "Ingrédients requis:"
-    ingredientsTitle.TextSize = 16
-    ingredientsTitle.Font = Enum.Font.SourceSansBold
+    ingredientsTitle.Text = "📦 Ingrédients requis"
+    ingredientsTitle.TextSize = 14
+    ingredientsTitle.Font = Enum.Font.GothamBold
     ingredientsTitle.Parent = recipeDetailFrame
     
     -- Liste des ingrédients
     local ingredientsList = Instance.new("Frame")
     ingredientsList.Name = "IngredientsList"
-    ingredientsList.Size = UDim2.new(1, 0, 0, 120)
-    ingredientsList.Position = UDim2.new(0, 0, 0, 260)
+    ingredientsList.Size = UDim2.new(1, -20, 0, 115)
+    ingredientsList.Position = UDim2.new(0, 10, 0, 285)
     ingredientsList.BackgroundTransparency = 1
     ingredientsList.Parent = recipeDetailFrame
     
     -- Bouton de fabrication
     local craftButton = Instance.new("TextButton")
     craftButton.Name = "CraftButton"
-    craftButton.Size = UDim2.new(0, 200, 0, 40)
-    craftButton.Position = UDim2.new(0.5, -100, 1, -50)
-    craftButton.BackgroundTransparency = 0.5
-    craftButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+    craftButton.Size = UDim2.new(0, 220, 0, 45)
+    craftButton.Position = UDim2.new(0.5, -110, 1, -55)
+    craftButton.BackgroundTransparency = 0.2
+    craftButton.BackgroundColor3 = Color3.fromRGB(70, 180, 70)
     craftButton.BorderSizePixel = 0
     craftButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    craftButton.Text = "Fabriquer"
-    craftButton.TextSize = 18
-    craftButton.Font = Enum.Font.SourceSansBold
+    craftButton.Text = "✅ Fabriquer"
+    craftButton.TextSize = 16
+    craftButton.Font = Enum.Font.GothamBold
     craftButton.Parent = recipeDetailFrame
     
     -- Arrondir les coins du bouton
     local craftButtonCorner = Instance.new("UICorner")
-    craftButtonCorner.CornerRadius = UDim.new(0, 8)
+    craftButtonCorner.CornerRadius = UDim.new(0, 10)
     craftButtonCorner.Parent = craftButton
+    
+    -- Effet hover
+    craftButton.MouseEnter:Connect(function()
+        if craftButton.Active then
+            craftButton.BackgroundColor3 = Color3.fromRGB(90, 200, 90)
+        end
+    end)
+    craftButton.MouseLeave:Connect(function()
+        if craftButton.Active then
+            craftButton.BackgroundColor3 = Color3.fromRGB(70, 180, 70)
+        end
+    end)
     
     -- Stocker les références importantes
     self.recipeListFrame = recipeListFrame
@@ -267,22 +315,22 @@ function CraftingUI:CreateCategoryTabs()
     for i, category in ipairs(self.categories) do
         local tabButton = Instance.new("TextButton")
         tabButton.Name = category .. "Tab"
-        tabButton.Size = UDim2.new(0, tabWidth, 0, 25)
-        tabButton.Position = UDim2.new(0, startX + (i-1) * (tabWidth + tabPadding), 0, 2)
-        tabButton.BackgroundTransparency = 0.5
+        tabButton.Size = UDim2.new(0, tabWidth, 0, 28)
+        tabButton.Position = UDim2.new(0, startX + (i-1) * (tabWidth + tabPadding), 0, 1)
+        tabButton.BackgroundTransparency = 0.3
         tabButton.BackgroundColor3 = category == self.selectedCategory and 
-                                     Color3.fromRGB(60, 60, 120) or 
-                                     Color3.fromRGB(60, 60, 60)
+                                     Color3.fromRGB(70, 120, 200) or 
+                                     Color3.fromRGB(50, 50, 50)
         tabButton.BorderSizePixel = 0
         tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
         tabButton.Text = self:GetCategoryDisplayName(category)
-        tabButton.TextSize = 14
-        tabButton.Font = Enum.Font.SourceSansBold
+        tabButton.TextSize = 13
+        tabButton.Font = Enum.Font.GothamBold
         tabButton.Parent = tabsFrame
         
         -- Arrondir les coins du bouton
         local tabCorner = Instance.new("UICorner")
-        tabCorner.CornerRadius = UDim.new(0, 5)
+        tabCorner.CornerRadius = UDim.new(0, 8)
         tabCorner.Parent = tabButton
         
         -- Connecter l'événement de clic
@@ -354,28 +402,35 @@ function CraftingUI:UpdateRecipeList()
         recipeFrame.Name = "Recipe_" .. recipeId
         recipeFrame.Size = UDim2.new(1, -10, 0, itemHeight)
         recipeFrame.Position = UDim2.new(0, 5, 0, yPosition)
-        recipeFrame.BackgroundTransparency = 0.5
+        recipeFrame.BackgroundTransparency = 0.3
         recipeFrame.BackgroundColor3 = self:IsRecipeUnlocked(recipeId) and 
-                                    Color3.fromRGB(50, 50, 50) or 
+                                    Color3.fromRGB(55, 55, 55) or 
                                     Color3.fromRGB(80, 50, 50)
         recipeFrame.BorderSizePixel = 0
         recipeFrame.Parent = self.recipeListFrame
         
         -- Arrondir les coins
         local frameCorner = Instance.new("UICorner")
-        frameCorner.CornerRadius = UDim.new(0, 5)
+        frameCorner.CornerRadius = UDim.new(0, 8)
         frameCorner.Parent = recipeFrame
+        
+        -- Bordure subtile
+        local frameStroke = Instance.new("UIStroke")
+        frameStroke.Color = Color3.fromRGB(70, 70, 70)
+        frameStroke.Thickness = 1
+        frameStroke.Transparency = 0.7
+        frameStroke.Parent = recipeFrame
         
         -- Nom de la recette
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Name = "NameLabel"
-        nameLabel.Size = UDim2.new(1, -10, 1, 0)
-        nameLabel.Position = UDim2.new(0, 10, 0, 0)
+        nameLabel.Size = UDim2.new(1, -15, 1, 0)
+        nameLabel.Position = UDim2.new(0, 12, 0, 0)
         nameLabel.BackgroundTransparency = 1
         nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
         nameLabel.Text = recipe.name
-        nameLabel.TextSize = 14
-        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.TextSize = 13
+        nameLabel.Font = Enum.Font.GothamBold
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.Parent = recipeFrame
         
@@ -539,18 +594,18 @@ function CraftingUI:UpdateRecipeDetail(recipeId)
             -- Cadre pour l'ingrédient
             local ingredientFrame = Instance.new("Frame")
             ingredientFrame.Name = "Ingredient_" .. itemId
-            ingredientFrame.Size = UDim2.new(1, -10, 0, itemHeight)
-            ingredientFrame.Position = UDim2.new(0, 5, 0, yPosition)
-            ingredientFrame.BackgroundTransparency = 0.7
+            ingredientFrame.Size = UDim2.new(1, 0, 0, itemHeight)
+            ingredientFrame.Position = UDim2.new(0, 0, 0, yPosition)
+            ingredientFrame.BackgroundTransparency = 0.4
             ingredientFrame.BackgroundColor3 = self:HasEnoughItems(itemId, quantity) and 
-                                            Color3.fromRGB(40, 80, 40) or 
-                                            Color3.fromRGB(80, 40, 40)
+                                            Color3.fromRGB(50, 100, 50) or 
+                                            Color3.fromRGB(100, 50, 50)
             ingredientFrame.BorderSizePixel = 0
             ingredientFrame.Parent = self.ingredientsList
             
             -- Arrondir les coins
             local frameCorner = Instance.new("UICorner")
-            frameCorner.CornerRadius = UDim.new(0, 5)
+            frameCorner.CornerRadius = UDim.new(0, 6)
             frameCorner.Parent = ingredientFrame
             
             -- Icône de l'ingrédient
@@ -570,8 +625,8 @@ function CraftingUI:UpdateRecipeDetail(recipeId)
             nameLabel.BackgroundTransparency = 1
             nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             nameLabel.Text = ingredient.name
-            nameLabel.TextSize = 14
-            nameLabel.Font = Enum.Font.SourceSans
+            nameLabel.TextSize = 13
+            nameLabel.Font = Enum.Font.GothamBold
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = ingredientFrame
             
@@ -586,8 +641,8 @@ function CraftingUI:UpdateRecipeDetail(recipeId)
                                      Color3.fromRGB(150, 255, 150) or 
                                      Color3.fromRGB(255, 150, 150)
             quantityLabel.Text = available .. "/" .. quantity
-            quantityLabel.TextSize = 14
-            quantityLabel.Font = Enum.Font.SourceSans
+            quantityLabel.TextSize = 13
+            quantityLabel.Font = Enum.Font.GothamBold
             quantityLabel.Parent = ingredientFrame
             
             -- Mettre à jour la position pour le prochain élément
@@ -626,17 +681,17 @@ function CraftingUI:UpdateCraftButton()
     
     -- Mettre à jour l'apparence et l'état du bouton
     if isUnlocked and hasAllIngredients then
-        self.craftButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+        self.craftButton.BackgroundColor3 = Color3.fromRGB(70, 180, 70)
         self.craftButton.Active = true
-        self.craftButton.Text = "Fabriquer"
+        self.craftButton.Text = "✅ Fabriquer"
     elseif not isUnlocked then
-        self.craftButton.BackgroundColor3 = Color3.fromRGB(120, 60, 0)
+        self.craftButton.BackgroundColor3 = Color3.fromRGB(180, 120, 60)
         self.craftButton.Active = false
-        self.craftButton.Text = "Recette verrouillée"
+        self.craftButton.Text = "🔒 Recette verrouillée"
     else
-        self.craftButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+        self.craftButton.BackgroundColor3 = Color3.fromRGB(180, 60, 60)
         self.craftButton.Active = false
-        self.craftButton.Text = "Ingrédients insuffisants"
+        self.craftButton.Text = "❌ Ingrédients insuffisants"
     end
 end
 

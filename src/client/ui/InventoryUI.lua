@@ -44,67 +44,85 @@ function InventoryUI:Initialize()
     -- Cadre principal pour l'inventaire
     self.inventoryFrame = Instance.new("Frame")
     self.inventoryFrame.Name = "InventoryFrame"
-    self.inventoryFrame.Size = UDim2.new(0, 500, 0, 350)
-    self.inventoryFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-    self.inventoryFrame.BackgroundTransparency = 0.2
-    self.inventoryFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    self.inventoryFrame.Size = UDim2.new(0, 550, 0, 380)
+    self.inventoryFrame.Position = UDim2.new(0.5, -275, 0.5, -190)
+    self.inventoryFrame.BackgroundTransparency = 0.15
+    self.inventoryFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     self.inventoryFrame.BorderSizePixel = 0
     self.inventoryFrame.Parent = self.gui
     
     -- Arrondir les coins
     local uiCorner = Instance.new("UICorner")
-    uiCorner.CornerRadius = UDim.new(0, 10)
+    uiCorner.CornerRadius = UDim.new(0, 12)
     uiCorner.Parent = self.inventoryFrame
+    
+    -- Effet de brillance subtil
+    local mainGradient = Instance.new("UIGradient")
+    mainGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(35, 35, 35)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 45, 45))
+    })
+    mainGradient.Rotation = 90
+    mainGradient.Parent = self.inventoryFrame
     
     -- Titre de l'inventaire
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Name = "TitleLabel"
-    titleLabel.Size = UDim2.new(1, 0, 0, 40)
+    titleLabel.Size = UDim2.new(1, 0, 0, 45)
     titleLabel.Position = UDim2.new(0, 0, 0, 0)
-    titleLabel.BackgroundTransparency = 0.5
-    titleLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    titleLabel.BackgroundTransparency = 0.3
+    titleLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     titleLabel.BorderSizePixel = 0
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.Text = "Inventaire"
-    titleLabel.TextSize = 20
-    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = "🎒 Inventaire"
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.GothamBold
     titleLabel.Parent = self.inventoryFrame
     
     -- Arrondir les coins du titre
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 10)
+    titleCorner.CornerRadius = UDim.new(0, 12)
     titleCorner.Parent = titleLabel
     
     -- Bouton de fermeture
     local closeButton = Instance.new("TextButton")
     closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 30, 0, 30)
-    closeButton.Position = UDim2.new(1, -35, 0, 5)
-    closeButton.BackgroundTransparency = 0.5
-    closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeButton.Size = UDim2.new(0, 35, 0, 35)
+    closeButton.Position = UDim2.new(1, -40, 0, 5)
+    closeButton.BackgroundTransparency = 0.3
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
     closeButton.BorderSizePixel = 0
     closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.Text = "X"
-    closeButton.TextSize = 20
-    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Text = "✕"
+    closeButton.TextSize = 18
+    closeButton.Font = Enum.Font.GothamBold
     closeButton.Parent = titleLabel
     
     -- Arrondir les coins du bouton
     local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 8)
+    buttonCorner.CornerRadius = UDim.new(0, 10)
     buttonCorner.Parent = closeButton
+    
+    -- Effet hover pour le bouton
+    closeButton.MouseEnter:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+    end)
+    closeButton.MouseLeave:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    end)
     
     -- Grille d'emplacements d'inventaire
     local slotsFrame = Instance.new("Frame")
     slotsFrame.Name = "SlotsFrame"
-    slotsFrame.Size = UDim2.new(0, 400, 0, 250)
-    slotsFrame.Position = UDim2.new(0.5, -200, 0, 60)
+    slotsFrame.Size = UDim2.new(0, 420, 0, 270)
+    slotsFrame.Position = UDim2.new(0.5, -210, 0, 65)
     slotsFrame.BackgroundTransparency = 1
     slotsFrame.Parent = self.inventoryFrame
     
     -- Créer les emplacements d'inventaire
-    local slotSize = 50
-    local padding = 10
+    local slotSize = 48
+    local padding = 6
     local slotsPerRow = 8
     
     for i = 1, self.maxSlots do
@@ -120,17 +138,38 @@ function InventoryUI:Initialize()
     -- Équipement
     local equipmentFrame = Instance.new("Frame")
     equipmentFrame.Name = "EquipmentFrame"
-    equipmentFrame.Size = UDim2.new(0, 80, 0, 250)
-    equipmentFrame.Position = UDim2.new(0, 10, 0, 60)
-    equipmentFrame.BackgroundTransparency = 0.7
-    equipmentFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    equipmentFrame.Size = UDim2.new(0, 90, 0, 270)
+    equipmentFrame.Position = UDim2.new(0, 15, 0, 65)
+    equipmentFrame.BackgroundTransparency = 0.5
+    equipmentFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     equipmentFrame.BorderSizePixel = 0
     equipmentFrame.Parent = self.inventoryFrame
     
+    local equipmentCorner = Instance.new("UICorner")
+    equipmentCorner.CornerRadius = UDim.new(0, 10)
+    equipmentCorner.Parent = equipmentFrame
+    
+    -- Titre du panneau d'équipement
+    local equipTitle = Instance.new("TextLabel")
+    equipTitle.Name = "EquipTitle"
+    equipTitle.Size = UDim2.new(1, 0, 0, 25)
+    equipTitle.BackgroundTransparency = 0.3
+    equipTitle.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    equipTitle.BorderSizePixel = 0
+    equipTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    equipTitle.TextSize = 12
+    equipTitle.Font = Enum.Font.GothamBold
+    equipTitle.Text = "⚔️ Équipement"
+    equipTitle.Parent = equipmentFrame
+    
+    local equipTitleCorner = Instance.new("UICorner")
+    equipTitleCorner.CornerRadius = UDim.new(0, 10)
+    equipTitleCorner.Parent = equipTitle
+    
     -- Emplacements d'équipement
-    self:CreateEquipmentSlot("tool", equipmentFrame, UDim2.new(0, 15, 0, 20), "Outil")
-    self:CreateEquipmentSlot("body", equipmentFrame, UDim2.new(0, 15, 0, 90), "Corps")
-    self:CreateEquipmentSlot("head", equipmentFrame, UDim2.new(0, 15, 0, 160), "Tête")
+    self:CreateEquipmentSlot("tool", equipmentFrame, UDim2.new(0, 15, 0, 35), "🔨 Outil")
+    self:CreateEquipmentSlot("body", equipmentFrame, UDim2.new(0, 15, 0, 115), "👚 Corps")
+    self:CreateEquipmentSlot("head", equipmentFrame, UDim2.new(0, 15, 0, 195), "🎩 Tête")
     
     -- Ajouter l'interface au joueur
     self.gui.Parent = self.player.PlayerGui
@@ -173,15 +212,22 @@ function InventoryUI:CreateInventorySlot(slotNumber, parent, position, size)
     slotFrame.Name = "Slot" .. slotNumber
     slotFrame.Size = size
     slotFrame.Position = position
-    slotFrame.BackgroundTransparency = 0.5
-    slotFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    slotFrame.BackgroundTransparency = 0.4
+    slotFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     slotFrame.BorderSizePixel = 0
     slotFrame.Parent = parent
     
     -- Arrondir les coins
     local slotCorner = Instance.new("UICorner")
-    slotCorner.CornerRadius = UDim.new(0, 5)
+    slotCorner.CornerRadius = UDim.new(0, 8)
     slotCorner.Parent = slotFrame
+    
+    -- Bordure subtile
+    local slotStroke = Instance.new("UIStroke")
+    slotStroke.Color = Color3.fromRGB(70, 70, 70)
+    slotStroke.Thickness = 1
+    slotStroke.Transparency = 0.6
+    slotStroke.Parent = slotFrame
     
     -- Image de l'objet
     local itemImage = Instance.new("ImageLabel")
@@ -196,21 +242,22 @@ function InventoryUI:CreateInventorySlot(slotNumber, parent, position, size)
     -- Quantité
     local quantityLabel = Instance.new("TextLabel")
     quantityLabel.Name = "QuantityLabel"
-    quantityLabel.Size = UDim2.new(0, 20, 0, 20)
-    quantityLabel.Position = UDim2.new(1, -20, 1, -20)
-    quantityLabel.BackgroundTransparency = 0.5
-    quantityLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    quantityLabel.Size = UDim2.new(0, 22, 0, 18)
+    quantityLabel.Position = UDim2.new(1, -24, 1, -20)
+    quantityLabel.BackgroundTransparency = 0.3
+    quantityLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     quantityLabel.BorderSizePixel = 0
     quantityLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     quantityLabel.Text = ""
-    quantityLabel.TextSize = 14
-    quantityLabel.Font = Enum.Font.SourceSansBold
+    quantityLabel.TextSize = 12
+    quantityLabel.Font = Enum.Font.GothamBold
     quantityLabel.Visible = false
+    quantityLabel.ZIndex = 3
     quantityLabel.Parent = slotFrame
     
     -- Arrondir les coins de l'étiquette
     local quantityCorner = Instance.new("UICorner")
-    quantityCorner.CornerRadius = UDim.new(0, 5)
+    quantityCorner.CornerRadius = UDim.new(0, 6)
     quantityCorner.Parent = quantityLabel
     
     -- Bouton pour l'interaction
@@ -299,28 +346,35 @@ function InventoryUI:CreateEquipmentSlot(equipType, parent, position, label)
     -- Créer le cadre de l'emplacement
     local slotFrame = Instance.new("Frame")
     slotFrame.Name = equipType .. "Slot"
-    slotFrame.Size = UDim2.new(0, 50, 0, 50)
+    slotFrame.Size = UDim2.new(0, 60, 0, 60)
     slotFrame.Position = position
-    slotFrame.BackgroundTransparency = 0.5
-    slotFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    slotFrame.BackgroundTransparency = 0.4
+    slotFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     slotFrame.BorderSizePixel = 0
     slotFrame.Parent = parent
     
     -- Arrondir les coins
     local slotCorner = Instance.new("UICorner")
-    slotCorner.CornerRadius = UDim.new(0, 5)
+    slotCorner.CornerRadius = UDim.new(0, 10)
     slotCorner.Parent = slotFrame
+    
+    -- Bordure
+    local slotStroke = Instance.new("UIStroke")
+    slotStroke.Color = Color3.fromRGB(90, 90, 90)
+    slotStroke.Thickness = 2
+    slotStroke.Transparency = 0.5
+    slotStroke.Parent = slotFrame
     
     -- Étiquette du type d'équipement
     local typeLabel = Instance.new("TextLabel")
     typeLabel.Name = "TypeLabel"
-    typeLabel.Size = UDim2.new(1, 0, 0, 20)
-    typeLabel.Position = UDim2.new(0, 0, 1, 5)
+    typeLabel.Size = UDim2.new(1, 0, 0, 18)
+    typeLabel.Position = UDim2.new(0, 0, 1, 3)
     typeLabel.BackgroundTransparency = 1
-    typeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    typeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
     typeLabel.Text = label
-    typeLabel.TextSize = 14
-    typeLabel.Font = Enum.Font.SourceSans
+    typeLabel.TextSize = 11
+    typeLabel.Font = Enum.Font.GothamBold
     typeLabel.Parent = slotFrame
     
     -- Image de l'objet

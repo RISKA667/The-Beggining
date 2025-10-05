@@ -469,13 +469,8 @@ function PlayerController:SetSleepingState(isSleeping)
     if isSleeping then
         -- Mettre le joueur en position allongée
         humanoid.Sit = true
-
-        -- Désactiver les contrôles pendant le sommeil
-        ContextActionService:BindAction("DisableMoveForward", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterForward)
-        ContextActionService:BindAction("DisableMoveBackward", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterBackward)
-        ContextActionService:BindAction("DisableMoveLeft", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterLeft)
-        ContextActionService:BindAction("DisableMoveRight", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterRight)
-        ContextActionService:BindAction("DisableJump", function() return Enum.ContextActionResult.Sink end, false, Enum.PlayerActions.CharacterJump)
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
 
         -- Envoyer un événement au serveur
         local events = ReplicatedStorage:FindFirstChild("Events")
@@ -490,13 +485,8 @@ function PlayerController:SetSleepingState(isSleeping)
     else
         -- Remettre le joueur debout
         humanoid.Sit = false
-
-        -- Réactiver les contrôles
-        ContextActionService:UnbindAction("DisableMoveForward")
-        ContextActionService:UnbindAction("DisableMoveBackward")
-        ContextActionService:UnbindAction("DisableMoveLeft")
-        ContextActionService:UnbindAction("DisableMoveRight")
-        ContextActionService:UnbindAction("DisableJump")
+        humanoid.WalkSpeed = self.walkSpeed
+        humanoid.JumpPower = 50
 
         -- Envoyer un événement au serveur
         local events = ReplicatedStorage:FindFirstChild("Events")

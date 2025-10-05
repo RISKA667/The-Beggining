@@ -850,3 +850,10 @@ function InventoryService:SetupRemoteEvents()
     
     -- Stocker les références
     self.remoteEvents = {
+        UpdateInventory = events:FindFirstChild("UpdateInventory"),
+        Notification = events:FindFirstChild("Notification"),
+        PlayerAction = events:FindFirstChild("PlayerAction")
+    }
+end
+
+return InventoryService

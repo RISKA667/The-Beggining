@@ -165,10 +165,10 @@ function PlayerService:ReincarnatePlayer(player)
     -- Faire réapparaître le joueur près de son parent
     if parentPlayer and parentPlayer.Character then
         local character = player.Character or player.CharacterAdded:Wait()
-        local parentPos = parentPlayer.Character:GetPrimaryPartCFrame()
+        local parentPos = parentPlayer.Character:GetPivot()
         
         -- Positionner le joueur près du parent
-        character:SetPrimaryPartCFrame(parentPos * CFrame.new(0, 0, 3))
+        character:PivotTo(parentPos * CFrame.new(0, 0, 3))
     end
 end
 
@@ -191,7 +191,7 @@ function PlayerService:ResetPlayerData(player, parentUserId)
     -- Réinitialiser l'aspect du personnage (taille plus petite pour un enfant)
     local character = player.Character
     if character and character:FindFirstChild("Humanoid") then
-        character:ScaleTo(0.6)  -- 60% de la taille adulte
+        character.Humanoid:ScaleTo(0.6)  -- 60% de la taille adulte
     end
     
     -- Mettre à jour le client
@@ -228,7 +228,7 @@ function PlayerService:UpdateAppearanceByAge(player)
     local scale = math.min(1, 0.6 + (data.age / 16) * 0.4)
     
     -- Appliquer l'échelle
-    character:ScaleTo(scale)
+    humanoid:ScaleTo(scale)
     
     -- D'autres modifications d'apparence peuvent être ajoutées ici
     -- (cheveux gris pour les personnes âgées, etc.)

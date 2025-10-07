@@ -123,6 +123,7 @@ function BuildingService.new()
     -- Références aux services (seront injectées dans Start)
     self.inventoryService = nil
     self.tribeService = nil
+    self.survivalService = nil
     
     -- RemoteEvents (seront référencés dans Start)
     self.remoteEvents = {}
@@ -439,6 +440,21 @@ function BuildingService:PlaceBuilding(player, itemId, position, rotation)
         end
     end
     
+    -- Vérifier la limite de constructions par joueur
+    local maxStructures = GameSettings.Building.maxStructuresPerPlayer or 100
+    local playerStructureCount = 0
+    
+    if self.playerStructures[userId] then
+        for _ in pairs(self.playerStructures[userId]) do
+            playerStructureCount = playerStructureCount + 1
+        end
+    end
+    
+    if playerStructureCount >= maxStructures then
+        self:SendNotification(player, string.format("Limite de constructions atteinte (%d/%d)", playerStructureCount, maxStructures), "error")
+        return false, "Limite de constructions atteinte"
+    end
+    
     -- Vérifier si le joueur a l'objet dans son inventaire
     if not self.inventoryService:HasItemInInventory(player, itemId, 1) then
         self:SendNotification(player, "Vous n'avez pas cet objet dans votre inventaire", "error")
@@ -583,14 +599,22 @@ function BuildingService:SetupDoor(doorModel)
     
     -- Ajouter un attribut pour l'état de la porte
     doorModel:SetAttribute("DoorOpen", false)
+    doorModel:SetAttribute("DoorAnimating", false)
     
     -- Ajouter un ClickDetector pour l'interaction
     local clickDetector = Instance.new("ClickDetector")
     clickDetector.MaxActivationDistance = 10
     clickDetector.Parent = primaryPart
     
-    -- Gérer l'ouverture/fermeture
+    -- Gérer l'ouverture/fermeture avec debounce
     clickDetector.MouseClick:Connect(function(player)
+        -- Debounce : empêcher l'animation si déjà en cours
+        if doorModel:GetAttribute("DoorAnimating") then
+            return
+        end
+        
+        doorModel:SetAttribute("DoorAnimating", true)
+        
         local isOpen = doorModel:GetAttribute("DoorOpen")
         isOpen = not isOpen
         doorModel:SetAttribute("DoorOpen", isOpen)
@@ -623,6 +647,8 @@ function BuildingService:SetupDoor(doorModel)
             
             if alpha >= 1 then
                 connection:Disconnect()
+                -- Désactiver le debounce à la fin de l'animation
+                doorModel:SetAttribute("DoorAnimating", false)
             end
         end)
     end)
@@ -673,9 +699,19 @@ function BuildingService:HandleBedInteraction(player, structureId)
         return
     end
     
-    -- Déclencher l'action de sommeil
-    if self.remoteEvents.PlayerAction then
-        self.remoteEvents.PlayerAction:FireClient(player, "sleep")
+    -- Appeler le SurvivalService pour démarrer le sommeil
+    if self.survivalService then
+        local success = self.survivalService:StartSleeping(player, structureId)
+        if success then
+            self:SendNotification(player, "Vous vous endormez...", "success")
+        else
+            self:SendNotification(player, "Impossible de dormir pour le moment", "warning")
+        end
+    else
+        -- Fallback si SurvivalService n'est pas disponible
+        if self.remoteEvents.PlayerAction then
+            self.remoteEvents.PlayerAction:FireClient(player, "sleep")
+        end
     end
 end
 
@@ -691,9 +727,12 @@ function BuildingService:HandleCampfireInteraction(player, structureId)
         return
     end
     
-    -- Ouvrir l'interface de cuisson pour le joueur (à implémenter)
-    self:SendNotification(player, "Ouverture de l'interface de cuisson", "info")
-    -- Interface à implémenter
+    -- Ouvrir l'interface de cuisson pour le joueur
+    if self.remoteEvents.OpenCraftingStation then
+        self.remoteEvents.OpenCraftingStation:FireClient(player, "cooking", structureId)
+    else
+        self:SendNotification(player, "Ouverture de l'interface de cuisson", "info")
+    end
 end
 
 -- Gérer l'interaction avec un four
@@ -708,9 +747,12 @@ function BuildingService:HandleFurnaceInteraction(player, structureId)
         return
     end
     
-    -- Ouvrir l'interface de fonte pour le joueur (à implémenter)
-    self:SendNotification(player, "Ouverture de l'interface de fonte", "info")
-    -- Interface à implémenter
+    -- Ouvrir l'interface de fonte pour le joueur
+    if self.remoteEvents.OpenCraftingStation then
+        self.remoteEvents.OpenCraftingStation:FireClient(player, "smelting", structureId)
+    else
+        self:SendNotification(player, "Ouverture de l'interface de fonte", "info")
+    end
 end
 
 -- Gérer l'interaction avec une enclume
@@ -725,9 +767,12 @@ function BuildingService:HandleAnvilInteraction(player, structureId)
         return
     end
     
-    -- Ouvrir l'interface de forge pour le joueur (à implémenter)
-    self:SendNotification(player, "Ouverture de l'interface de forge", "info")
-    -- Interface à implémenter
+    -- Ouvrir l'interface de forge pour le joueur
+    if self.remoteEvents.OpenCraftingStation then
+        self.remoteEvents.OpenCraftingStation:FireClient(player, "forging", structureId)
+    else
+        self:SendNotification(player, "Ouverture de l'interface de forge", "info")
+    end
 end
 
 -- Vérifier si un joueur peut interagir avec une structure
@@ -906,7 +951,54 @@ end
 
 -- Vérifier les structures endommagées qui pourraient s'effondrer
 function BuildingService:CheckDamagedStructures()
+    local currentTime = os.time()
+    
     for structureId, structureData in pairs(self.structuresById) do
+        -- Appliquer la dégradation naturelle (optionnel - peut être désactivé)
+        local enableNaturalDecay = true -- Peut être configuré dans GameSettings
+        
+        if enableNaturalDecay then
+            -- Calculer l'âge de la structure en jours
+            local ageInSeconds = currentTime - structureData.creationTime
+            local ageInDays = ageInSeconds / (24 * 60 * 60)
+            
+            -- Vérifier si un jour s'est écoulé depuis la dernière dégradation
+            if not structureData.lastDecayCheck then
+                structureData.lastDecayCheck = structureData.creationTime
+            end
+            
+            local timeSinceLastDecay = currentTime - structureData.lastDecayCheck
+            
+            -- Appliquer la dégradation toutes les 24 heures
+            if timeSinceLastDecay >= (24 * 60 * 60) then
+                -- Calculer la dégradation selon le type de matériau
+                local decayRate = 1 -- Par défaut, 1 point par jour
+                
+                if structureData.type:find("wooden") then
+                    decayRate = 2 -- Le bois se dégrade plus vite
+                elseif structureData.type:find("stone") then
+                    decayRate = 0.5 -- La pierre se dégrade plus lentement
+                elseif structureData.type:find("brick") then
+                    decayRate = 0.3 -- La brique est très résistante
+                end
+                
+                -- Appliquer la dégradation
+                self:DamageStructure(structureId, decayRate, "dégradation naturelle")
+                
+                -- Mettre à jour le temps de dernière vérification
+                structureData.lastDecayCheck = currentTime
+                
+                -- Avertir le propriétaire si la structure a besoin d'entretien
+                if structureData.durability < 50 then
+                    local owner = Players:GetPlayerByUserId(structureData.owner)
+                    if owner then
+                        local structureName = ItemTypes[structureData.type] and ItemTypes[structureData.type].name or structureData.type
+                        self:SendNotification(owner, structureName .. " a besoin d'entretien (" .. math.floor(structureData.durability) .. "% durabilité)", "warning")
+                    end
+                end
+            end
+        end
+        
         -- Si la durabilité est nulle ou négative, la structure s'effondre
         if structureData.durability <= 0 then
             self:DestroyStructure(structureId)
@@ -976,6 +1068,7 @@ function BuildingService:Start(services)
     -- Récupérer les références aux autres services
     self.inventoryService = services.InventoryService
     self.tribeService = services.TribeService
+    self.survivalService = services.SurvivalService
     
     if not self.inventoryService then
         warn("BuildingService: InventoryService non disponible. Certaines fonctionnalités seront limitées.")
@@ -990,6 +1083,17 @@ function BuildingService:Start(services)
             Notification = Events:FindFirstChild("Notification"),
             PlayerAction = Events:FindFirstChild("PlayerAction")
         }
+        
+        -- Créer le RemoteEvent pour les stations de crafting s'il n'existe pas
+        if not Events:FindFirstChild("OpenCraftingStation") then
+            local openCraftingStation = Instance.new("RemoteEvent")
+            openCraftingStation.Name = "OpenCraftingStation"
+            openCraftingStation.Parent = Events
+            self.remoteEvents.OpenCraftingStation = openCraftingStation
+            print("BuildingService: RemoteEvent OpenCraftingStation créé")
+        else
+            self.remoteEvents.OpenCraftingStation = Events:FindFirstChild("OpenCraftingStation")
+        end
     else
         warn("BuildingService: Dossier Events non trouvé dans ReplicatedStorage")
     end

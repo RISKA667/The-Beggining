@@ -103,30 +103,40 @@ Avec l'extension Lua Debug, vous pouvez configurer le débogage pour votre code 
 2. Placez des points d'arrêt dans votre code.
 3. Utilisez la fonction `print()` librement pour le débogage.
 
-## 6. Continuer le développement
+## 6. État actuel du développement
 
-### Fonctionnalités à implémenter
+### ✅ Fonctionnalités Implémentées
 
-- **ResourceService**: Service pour gérer la génération et la récolte des ressources
-- **BuildingService**: Système de construction pour les structures et le mobilier
-- **TimeService**: Gestion du cycle jour/nuit et du vieillissement
-- **CraftingUI**: Interface utilisateur pour le système d'artisanat
-- **AgeUI**: Interface utilisateur pour afficher l'âge du joueur
+- ✅ **10 Services serveur complets** : PlayerService, InventoryService, SurvivalService, CraftingService, ResourceService, BuildingService, TimeService, TribeService, CombatService, FarmingService
+- ✅ **8 Interfaces utilisateur** : StatsUI, InventoryUI, CraftingUI, NotificationUI, TribeUI, AgeUI, CombatUI, CraftingStationUI
+- ✅ **4 Contrôleurs client** : PlayerController, UIController, CameraController, AnimationController
+- ✅ **~19 755 lignes de code** réparties sur 33 fichiers .lua
+- ✅ **90+ types d'items** et **95 recettes** d'artisanat
+- ✅ **Systèmes avancés** : Combat (PvP, duels, effets de statut), Farming (maladies, engrais, saisons)
 
-### Ressources et modèles
+### ⚠️ Fonctionnalités à Finaliser
 
-Pour continuer le développement, vous aurez besoin:
+- ⚠️ **Corriger multiplicateur d'outils** (math.floor → math.ceil)
+- ⚠️ **Protection tribale des ressources** (recommandé)
+- ⚠️ **Équilibrage général** des valeurs (dégâts, temps, coûts)
 
-1. De modèles 3D pour:
-   - Les ressources (bois, pierre, minerais)
-   - Les outils et armes
-   - Les bâtiments et meubles
-   - Les personnages
+### Ressources et modèles (Assets manquants)
 
-2. De sons pour:
-   - Les interactions (récolte, craft)
-   - Les ambiances (jour, nuit, forêt, etc.)
-   - Les événements (naissance, mort)
+Pour améliorer le jeu, vous aurez besoin:
+
+1. **Modèles 3D** pour remplacer les formes géométriques simples:
+   - Les ressources (arbres, rochers, minerais détaillés)
+   - Les outils et armes (90+ items définis dans ItemTypes.lua)
+   - Les bâtiments et meubles (17+ types définis)
+   - Les cultures (5 stades de croissance pour chaque type)
+   - Les personnages (actuellement personnages Roblox par défaut)
+
+2. **Sons et musique** pour l'immersion:
+   - Les interactions (récolte, craft, combat, arrosage)
+   - Les ambiances (jour, nuit, forêt, combat)
+   - Les événements (naissance, mort, niveau technologique débloqué)
+   - Les effets de combat (coups, blocage, parade)
+   - Musique d'ambiance selon l'heure et l'activité
 
 ### Suggestions de développement
 

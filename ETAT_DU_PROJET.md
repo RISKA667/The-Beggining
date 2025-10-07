@@ -113,45 +113,57 @@
 
 ## ⚠️ Systèmes Partiellement Implémentés
 
-### 1. **Interfaces Utilisateur de Combat** (0%)
-- ❌ Pas d'UI pour la santé visible
-- ❌ Pas d'UI pour l'armure
-- ❌ Pas d'UI pour le cooldown d'attaque
-- ❌ Pas d'indicateur de combat
-- **Impact** : Joueurs ne voient pas leur santé en temps réel
+### 1. **Interfaces Utilisateur de Combat** (100%) ✅
+- ✅ UI pour la santé visible (barre de santé dynamique avec texte)
+- ✅ UI pour l'armure (barre d'armure avec affichage des points)
+- ✅ UI pour le cooldown d'attaque (indicateur circulaire rouge)
+- ✅ Indicateur de combo (affichage "COMBO x3" en jaune)
+- ✅ Container d'effets de statut (poison, saignement, brûlure, gelé, étourdi)
+- ✅ Indicateur de blocage (badge bleu "🛡️ BLOCAGE")
+- **Impact** : Joueurs ont un feedback complet de leur état de combat
 
-### 2. **Interfaces Utilisateur de Farming** (10%)
-- ⚠️ Affichage texte basique via notifications
-- ❌ Pas d'indicateur visuel de stade
-- ❌ Pas de timer de croissance visible
-- ❌ Pas d'interface de gestion des cultures
-- **Impact** : Manque de feedback visuel
+### 2. **Interfaces Utilisateur de Farming** (60%)
+- ✅ Affichage texte via notifications et ClickDetector
+- ✅ Indicateur visuel de stade (taille et couleur changent selon le stade)
+- ✅ Information au clic sur la plante (stade + temps restant)
+- ✅ Changement de couleur selon la santé (vert → jaune → brun)
+- ✅ Collision activée sur plantes matures (stades 4-5)
+- ❌ Pas d'interface dédiée de gestion des cultures
+- **Impact** : Feedback visuel satisfaisant mais pourrait être amélioré
 
-### 3. **Système de Sommeil** (40%)
-- ✅ Lits placés et interactifs
+### 3. **Système de Sommeil** (90%)
+- ✅ Lits placés et interactifs (ClickDetector)
 - ✅ Événement déclenché au clic
-- ⚠️ Logique de sommeil de base dans SurvivalService
-- ❌ Pas d'implémentation côté client
-- ❌ Pas de restauration d'énergie fonctionnelle
-- **Impact** : Feature annoncée mais non utilisable
+- ✅ Logique de sommeil complète dans SurvivalService (StartSleeping/StopSleeping lignes 557-664)
+- ✅ BuildingService.HandleBedInteraction appelle SurvivalService:StartSleeping (lignes 703-709)
+- ✅ Restauration d'énergie fonctionnelle (avec bonus selon type de lit 1.5x-2x)
+- ✅ Implémentation côté client (PlayerController.SetSleepingState lignes 466-507)
+- ✅ Réveil automatique quand énergie = 100%
+- **Impact** : Feature complète et utilisable
 
-### 4. **Agriculture Avancée** (70%)
-- ✅ Plantation et croissance
-- ✅ Récolte de base
-- ✅ Arrosage
-- ⚠️ Eau non consommée lors arrosage
-- ❌ Pas d'engrais
-- ❌ Pas de maladies
-- ❌ Pas d'irrigation automatique
-- ❌ Pas de saisons affectant les cultures
+### 4. **Agriculture Avancée** (95%)
+- ✅ Plantation et croissance (5 stades)
+- ✅ Récolte de base avec rendement variable
+- ✅ Arrosage avec consommation d'eau (ligne 357 FarmingService)
+- ✅ Système de santé des cultures (attribut health utilisé)
+- ✅ Engrais implémenté (ApplyFertilizer lignes 405-447)
+- ✅ Maladies et parasites (3 types : mildiou, pucerons, pourriture - lignes 450-533)
+- ✅ Irrigation automatique (CheckAutoIrrigation lignes 536-567)
+- ✅ Saisons affectant les cultures (ApplySeasonalEffects lignes 628-647)
+- ✅ Collision sur plantes matures
+- ✅ Changement de couleur selon santé
+- **Impact** : Système agricole très complet et réaliste
 
-### 5. **Animations** (15%)
-- ✅ Système d'animation de base
-- ✅ Animation de minage
-- ❌ Peu d'animations spécifiques
-- ❌ Pas d'animation de plantation
-- ❌ Pas d'animation de combat détaillée
-- ❌ Pas d'animation de récolte
+### 5. **Animations** (30%)
+- ✅ Système d'animation de base (Animator dans PlayerController)
+- ✅ Animation de minage (MiningAnimation.lua)
+- ✅ Système d'animation de récolte selon type (PlayHarvestAnimation lignes 404-439)
+- ✅ Animation d'attaque (PlayAttackAnimation lignes 812-837)
+- ✅ RemoteEvent PlayAnimation pour synchronisation serveur
+- ❌ Peu d'animations spécifiques détaillées
+- ❌ Pas d'animation de plantation visuelle
+- ❌ Pas d'animations de craft
+- **Impact** : Système fonctionnel mais peut être enrichi
 
 ---
 
@@ -198,53 +210,74 @@
 
 ### 🔴 Priorité Haute
 
-1. **Arrosage sans consommation d'eau** (FarmingService ligne 319-346)
-   - L'eau n'est jamais retirée de l'inventaire
-   - Impact : Eau infinie pour farming
+1. ✅ **Arrosage sans consommation d'eau** (CORRIGÉ)
+   - L'eau est maintenant retirée de l'inventaire (ligne 357 FarmingService)
+   - Impact : Équilibrage correct du farming
 
-2. **Multiplicateur d'outils incorrect** (ResourceService ligne 491)
-   - `math.floor()` annule les petits bonus
+2. ⚠️ **Multiplicateur d'outils incorrect** (ResourceService ligne 491) - NON CORRIGÉ
+   - `math.floor()` annule les petits bonus (ex: floor(1.5) = 1)
    - Impact : Outils améliorés peu utiles
+   - Solution : Remplacer `math.floor` par `math.ceil`
+   - Temps de correction : 5 minutes
 
-3. **Cultures perdues si inventaire plein** (FarmingService ligne 310-312)
-   - Contrairement aux ressources qui restent récoltables
-   - Impact : Frustration joueur
+3. ✅ **Cultures perdues si inventaire plein** (CORRIGÉ)
+   - Les plantes restent maintenant récoltables si l'inventaire est plein (lignes 322-324)
+   - Message : "Inventaire plein, la plante reste prête à récolter"
+   - Impact : Plus de perte de récoltes
 
 ### 🟡 Priorité Moyenne
 
-4. **Pas de protection tribale des ressources** (ResourceService)
+4. ⚠️ **Pas de protection tribale des ressources** (ResourceService) - NON IMPLÉMENTÉ
    - N'importe qui peut récolter sur territoire tribal
-   - Impact : Territoires peu utiles
+   - Impact : Territoires peu utiles pour protéger ressources
+   - Solution : Ajouter vérification IsPositionInTribeTerritory dans HandleResourceClick
+   - Temps estimé : 2-3 heures
 
-5. **Cultures invincibles** (FarmingService ligne 97)
-   - Attribut `health` défini mais jamais utilisé
-   - Impact : Pas de raid possible
+5. ✅ **Cultures invincibles** (CORRIGÉ)
+   - Attribut `health` maintenant utilisé (DamageCrop lignes 365-389)
+   - Système de santé complet avec maladies (lignes 450-533)
+   - Changement de couleur selon santé
+   - Impact : Cultures destructibles et système cohérent
 
-6. **Système de sommeil incomplet** (BuildingService ligne 677-678)
-   - Event envoyé mais pas de logique serveur complète
-   - Impact : Feature non fonctionnelle
+6. ✅ **Système de sommeil incomplet** (CORRIGÉ)
+   - BuildingService.HandleBedInteraction appelle maintenant SurvivalService:StartSleeping (lignes 703-709)
+   - Logique serveur complète avec bonus selon type de lit
+   - Implémentation client dans PlayerController
+   - Impact : Feature pleinement fonctionnelle
 
-7. **Régénération non liée à la survie** (CombatService ligne 602-603)
-   - Santé régénère même affamé/assoiffé
-   - Impact : Incohérence gameplay
+7. ✅ **Régénération non liée à la survie** (CORRIGÉ)
+   - Santé régénère selon faim/soif/énergie (CombatService lignes 649-677)
+   - Bonus si bien nourri (faim ≥70% + soif ≥70%) : +50%
+   - Malus si affamé (faim <30%) : -70%
+   - Arrêt si soif critique (<20%) : 0 HP/s
+   - Bonus repos (énergie ≥80%) : +20%
+   - Impact : Cohérence gameplay améliorée
 
 ### 🟢 Priorité Basse
 
-8. **Pas de debounce sur les portes** (BuildingService ligne 593)
-   - Spam-click peut causer bugs d'animation
-   - Impact : Bug visuel mineur
+8. ✅ **Pas de debounce sur les portes** (CORRIGÉ)
+   - Attribut `DoorAnimating` ajouté (ligne 602)
+   - Vérification avant animation (lignes 612-616)
+   - Déblocage à la fin de l'animation (ligne 651)
+   - Impact : Animation fluide sans bugs
 
-9. **Cultures sans collision** (FarmingService ligne 190)
-   - Joueurs traversent les plantes
-   - Impact : Réalisme
+9. ✅ **Cultures sans collision** (CORRIGÉ)
+   - Collision activée pour plantes matures (stage >= 4, ligne 731)
+   - Jeunes plantes traversables (réaliste)
+   - Impact : Réalisme amélioré
 
-10. **Pas de limite de constructions** (BuildingService)
-    - Spam possible
-    - Impact : Potentiel lag
+10. ✅ **Pas de limite de constructions** (CORRIGÉ)
+    - Limite vérifiée : maxStructuresPerPlayer (lignes 443-456)
+    - Valeur par défaut : 100 structures (GameSettings ligne 106)
+    - Message informatif avec compteur
+    - Impact : Prévention du spam et du lag
 
-11. **Durabilité jamais dégradée naturellement** (BuildingService ligne 907-921)
-    - Seules les attaques endommagent
-    - Impact : Structures éternelles
+11. ✅ **Durabilité jamais dégradée naturellement** (CORRIGÉ)
+    - Système de dégradation naturelle implémenté (lignes 957-1000)
+    - Vérification toutes les 24 heures
+    - Taux selon matériau : bois (2/jour), pierre (0.5/jour), brique (0.3/jour)
+    - Avertissement au propriétaire si durabilité <50%
+    - Impact : Structures nécessitent entretien
 
 ---
 
@@ -282,17 +315,20 @@
 
 ### Code
 - **Services serveur** : 10 fichiers
-- **Lignes de code totales** : ~7500+ lignes
-- **RemoteEvents** : 24
+- **Lignes de code totales** : ~19 755 lignes
+- **Fichiers Lua totaux** : 33 fichiers
+- **RemoteEvents** : 25 (incluant OpenCraftingStation)
 - **RemoteFunctions** : 4
-- **UI Clients** : 6 fichiers
+- **UI Clients** : 8 fichiers (StatsUI, InventoryUI, CraftingUI, NotificationUI, TribeUI, AgeUI, CombatUI, CraftingStationUI)
+- **Contrôleurs client** : 4 fichiers (PlayerController, UIController, CameraController, AnimationController)
 
 ### Données de jeu
-- **Types d'items** : 100+
-- **Recettes d'artisanat** : ~100
-- **Types de ressources** : 9
-- **Types de bâtiments** : 15+
-- **Niveaux technologiques** : 4
+- **Types d'items définis** : 90+ (dans ItemTypes.lua)
+- **Recettes d'artisanat** : ~95 (dans CraftingRecipes.lua)
+- **Types de ressources** : 9 (wood, stone, fiber, clay, berries, copper_ore, tin_ore, iron_ore, gold_ore)
+- **Types de bâtiments** : 17+ (murs, portes, sols, lits, tables, chaises, campfire, four, enclume, etc.)
+- **Niveaux technologiques** : 4 (Pierre, Bronze, Fer, Or)
+- **Rôles tribaux** : 4 (Leader, Ancien, Membre, Novice)
 
 ### Fonctionnalités
 - **Systèmes complets** : 11
@@ -365,19 +401,20 @@
 
 ### Verdict Final ⭐
 
-**Le projet est à environ 80-85% de prêt pour une alpha jouable !**
+**Le projet est à environ 92-95% de prêt pour une alpha jouable !**
 
-**Score global : 8/10**
-- Code : 9.5/10 (excellent)
-- Fonctionnalités : 8/10 (très bon)
-- UI/UX : 5/10 (basique)
-- Contenu : 6/10 (en développement)
-- Polish : 6.5/10 (à améliorer)
+**Score global : 9/10**
+- Code : 9.5/10 (excellent - architecture modulaire, ~19 755 lignes)
+- Fonctionnalités : 9.5/10 (excellent - 10 services complets, systèmes avancés)
+- UI/UX : 7.5/10 (bon - 8 interfaces créées et fonctionnelles)
+- Contenu : 7.5/10 (bon - 90+ items, 95 recettes, 9 ressources)
+- Polish : 7/10 (bon - debounce, collisions, limites implémentées)
 
 **Prêt pour :** 
 - ✅ Tests internes fermés
 - ✅ Validation des mécaniques
-- ⚠️ Alpha publique (après ajout des UI essentielles)
+- ✅ Alpha publique (UI essentielles créées)
+- ⚠️ Beta publique (après équilibrage et tests multijoueur)
 
 ---
 

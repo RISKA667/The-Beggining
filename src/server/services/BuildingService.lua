@@ -321,7 +321,37 @@ function BuildingService:CheckPlacementValidity(player, position, itemId)
         end
     end
     
-    -- Vérification 3: Zone de tribu (si le système de tribu est activé)
+    -- Vérification 3: Collision avec les ressources naturelles
+    local resourcesFolder = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Resources")
+    if resourcesFolder then
+        for _, typeFolder in ipairs(resourcesFolder:GetChildren()) do
+            for _, resource in ipairs(typeFolder:GetChildren()) do
+                if resource:IsA("Model") and resource.PrimaryPart then
+                    local distance = (resource.PrimaryPart.Position - position).Magnitude
+                    -- Distance minimale de 5 studs des ressources
+                    if distance < 5 then
+                        return false
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Vérification 4: Collision avec les cultures
+    local cropsFolder = Workspace:FindFirstChild("Crops")
+    if cropsFolder then
+        for _, crop in ipairs(cropsFolder:GetChildren()) do
+            if crop:IsA("Model") and crop.PrimaryPart then
+                local distance = (crop.PrimaryPart.Position - position).Magnitude
+                -- Distance minimale de 3 studs des cultures
+                if distance < 3 then
+                    return false
+                end
+            end
+        end
+    end
+    
+    -- Vérification 5: Zone de tribu (si le système de tribu est activé)
     if self.tribeService then
         local userId = player.UserId
         local tribeId = self.tribeService:GetPlayerTribeId(player)
@@ -346,7 +376,7 @@ function BuildingService:CheckPlacementValidity(player, position, itemId)
         end
     end
     
-    -- Vérification 4: Le joueur a les permissions (si c'est dans une zone de tribu)
+    -- Vérification 6: Le joueur a les permissions (si c'est dans une zone de tribu)
     -- À implémenter si nécessaire avec le système de tribu
     
     -- Si toutes les vérifications sont passées, l'emplacement est valide

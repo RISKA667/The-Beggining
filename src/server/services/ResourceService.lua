@@ -174,21 +174,78 @@ function ResourceService:GenerateTestResources(resourcesFolder)
         -- Nettoyer le dossier existant
         typeFolder:ClearAllChildren()
         
-        -- Générer les ressources
-        for i = 1, count do
-            self:CreateResourceInstance(resourceType, typeFolder, Vector3.new(
+        -- Générer les ressources avec retry si position invalide
+        local attempts = 0
+        local maxAttempts = count * 3  -- Permettre 3x plus de tentatives
+        local generated = 0
+        
+        while generated < count and attempts < maxAttempts do
+            attempts = attempts + 1
+            
+            local position = Vector3.new(
                 math.random(minX, maxX),
                 0, -- La hauteur sera ajustée par RayCast
                 math.random(minZ, maxZ)
-            ))
+            )
+            
+            local resource = self:CreateResourceInstance(resourceType, typeFolder, position)
+            if resource then
+                generated = generated + 1
+            end
+        end
+        
+        if generated < count then
+            warn(string.format("ResourceService: Seulement %d/%d %s générés (certaines positions étaient occupées)", 
+                generated, count, resourceType))
         end
     end
+end
+
+-- Vérifier si une position est valide pour spawner une ressource
+function ResourceService:IsValidResourcePosition(position, resourceType)
+    -- Vérifier qu'il n'y a pas de construction à cet endroit
+    local structuresFolder = Workspace:FindFirstChild("Structures")
+    if structuresFolder then
+        -- Vérifier la distance avec toutes les structures
+        for _, structure in ipairs(structuresFolder:GetDescendants()) do
+            if structure:IsA("BasePart") then
+                local distance = (structure.Position - position).Magnitude
+                -- Exiger une distance minimale de 8 studs des structures
+                if distance < 8 then
+                    return false
+                end
+            end
+        end
+    end
+    
+    -- Vérifier qu'il n'y a pas déjà une autre ressource trop proche
+    local resourcesFolder = Workspace:FindFirstChild("Map") and Workspace.Map:FindFirstChild("Resources")
+    if resourcesFolder then
+        for _, typeFolder in ipairs(resourcesFolder:GetChildren()) do
+            for _, existingResource in ipairs(typeFolder:GetChildren()) do
+                if existingResource:IsA("Model") and existingResource.PrimaryPart then
+                    local distance = (existingResource.PrimaryPart.Position - position).Magnitude
+                    -- Distance minimale entre ressources : 5 studs
+                    if distance < 5 then
+                        return false
+                    end
+                end
+            end
+        end
+    end
+    
+    return true
 end
 
 -- Créer une instance de ressource dans le monde
 function ResourceService:CreateResourceInstance(resourceType, parent, position)
     local resourceInfo = self.resourceTypes[resourceType]
     if not resourceInfo then return end
+    
+    -- Vérifier que la position est valide (pas sur une construction)
+    if not self:IsValidResourcePosition(position, resourceType) then
+        return nil
+    end
     
     -- Créer un modèle de base pour la ressource
     local resource = Instance.new("Model")
@@ -488,6 +545,18 @@ end
 function ResourceService:RespawnResource(resourceId)
     local resourceData = self.resources[resourceId]
     if not resourceData then return end
+    
+    -- Vérifier si la position est toujours valide (pas de construction construite entre temps)
+    if not self:IsValidResourcePosition(resourceData.position, resourceData.type) then
+        warn("ResourceService: Impossible de faire réapparaître " .. resourceId .. " - position occupée par une construction")
+        
+        -- Détruire complètement cette ressource et ne pas la faire réapparaître
+        if resourceData.instance then
+            resourceData.instance:Destroy()
+        end
+        self.resources[resourceId] = nil
+        return
+    end
     
     -- Restaurer l'apparence de la ressource
     local resourceInstance = resourceData.instance

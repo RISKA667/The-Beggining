@@ -148,9 +148,14 @@ function FarmingService:IsValidPlantingPosition(player, position)
     -- Vérifier qu'il y a du sol sous la position
     local rayOrigin = position + Vector3.new(0, 5, 0)
     local rayDirection = Vector3.new(0, -10, 0)
-    local ray = Ray.new(rayOrigin, rayDirection)
     
-    local hitPart, hitPoint = workspace:FindPartOnRayWithIgnoreList(ray, {character})
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local hitPart = raycastResult and raycastResult.Instance
+    local hitPoint = raycastResult and raycastResult.Position
     
     if not hitPart then
         return false

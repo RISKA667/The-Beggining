@@ -315,10 +315,19 @@ function ResourceService:CreateResourceInstance(resourceType, parent, position)
     
     -- Effectuer un RayCast pour placer la ressource sur le sol
     local rayStart = position + Vector3.new(0, 100, 0)
-    local rayEnd = position - Vector3.new(0, 100, 0)
-    local ray = Ray.new(rayStart, rayEnd - rayStart)
+    local rayDirection = Vector3.new(0, -200, 0)
     
-    local hitPart, hitPoint, hitNormal = Workspace:FindPartOnRayWithIgnoreList(ray, {resource})
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {resource}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = Workspace:Raycast(rayStart, rayDirection, raycastParams)
+    local hitPart, hitPoint, hitNormal
+    if raycastResult then
+        hitPart = raycastResult.Instance
+        hitPoint = raycastResult.Position
+        hitNormal = raycastResult.Normal
+    end
     
     if hitPart then
         -- Placer la ressource sur le sol

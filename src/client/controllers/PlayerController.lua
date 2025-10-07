@@ -344,8 +344,13 @@ function PlayerController:TryInteract()
     local rayOrigin = camera.CFrame.Position
     local rayDirection = (mouse.Hit.Position - rayOrigin).Unit * self.interactionDistance
 
-    local ray = Ray.new(rayOrigin, rayDirection)
-    local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local hitPart = raycastResult and raycastResult.Instance
+    local hitPosition = raycastResult and raycastResult.Position
 
     if hitPart then
         local model = hitPart:FindFirstAncestorOfClass("Model")
@@ -714,8 +719,13 @@ function PlayerController:TryAttackOrHarvest()
     local rayOrigin = camera.CFrame.Position
     local rayDirection = (mouse.Hit.Position - rayOrigin).Unit * self.interactionDistance
 
-    local ray = Ray.new(rayOrigin, rayDirection)
-    local hitPart, hitPosition = workspace:FindPartOnRay(ray, character)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local hitPart = raycastResult and raycastResult.Instance
+    local hitPosition = raycastResult and raycastResult.Position
 
     if hitPart then
         local model = hitPart:FindFirstAncestorOfClass("Model")
@@ -723,10 +733,14 @@ function PlayerController:TryAttackOrHarvest()
         if model then
             -- Vérifier le type de modèle
             local resourceType = model:GetAttribute("ResourceType")
+            local structureId = model:GetAttribute("StructureId")
 
             if resourceType then
                 -- Récolter une ressource avec l'outil
                 self:HarvestResourceWithTool(model, resourceType)
+            elseif structureId then
+                -- Attaquer une structure
+                self:AttackStructure(structureId, hitPart)
             else
                 -- Attaquer une cible
                 self:AttackTarget(hitPart)
@@ -770,6 +784,23 @@ function PlayerController:AttackTarget(targetPart)
         local playerActionEvent = events:FindFirstChild("PlayerAction")
         if playerActionEvent then
             playerActionEvent:FireServer("attack", targetPart)
+        end
+    end
+
+    -- Jouer l'animation d'attaque
+    self:PlayAttackAnimation()
+end
+
+-- Attaquer une structure
+function PlayerController:AttackStructure(structureId, hitPart)
+    -- Envoyer un événement au serveur pour attaquer la structure
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    if events then
+        local attackStructureEvent = events:FindFirstChild("AttackStructure")
+        if attackStructureEvent then
+            attackStructureEvent:FireServer(structureId, hitPart)
+        else
+            warn("PlayerController: AttackStructure event non trouvé")
         end
     end
 

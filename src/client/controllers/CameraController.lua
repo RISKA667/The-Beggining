@@ -339,12 +339,15 @@ function CameraController:AdjustCameraForCollisions(origin, desiredCameraPos)
     local direction = (desiredCameraPos - origin).Unit
     local distance = (desiredCameraPos - origin).Magnitude
     
-    local ray = Ray.new(origin, direction * distance)
-    local hitPart, hitPosition = workspace:FindPartOnRayWithIgnoreList(ray, {self.player.Character})
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {self.player.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
     
-    if hitPart then
+    local raycastResult = workspace:Raycast(origin, direction * distance, raycastParams)
+    
+    if raycastResult then
         -- Ajouter un petit décalage pour éviter les problèmes de clipping
-        return hitPosition + (origin - hitPosition).Unit * self.collisionOffset
+        return raycastResult.Position + (origin - raycastResult.Position).Unit * self.collisionOffset
     end
     
     return desiredCameraPos

@@ -30,6 +30,7 @@ function CombatService.new()
     self.inventoryService = nil
     self.playerService = nil
     self.tribeService = nil
+    self.buildingService = nil
     
     -- RemoteEvents
     self.remoteEvents = {}
@@ -357,6 +358,118 @@ function CombatService:ShowDamageIndicator(player, damage)
     Debris:AddItem(billboard, 1)
 end
 
+-- Attaquer une structure
+function CombatService:AttackStructure(attacker, structureId, hitPart)
+    if not attacker or not attacker:IsA("Player") then return false end
+    if not self.buildingService then return false end
+    
+    local attackerId = attacker.UserId
+    
+    -- Vérifier le cooldown d'attaque
+    local currentTime = tick()
+    local lastAttack = self.lastAttackTime[attackerId] or 0
+    
+    if currentTime - lastAttack < self.attackCooldown then
+        return false, "Attaque trop rapide"
+    end
+    
+    -- Vérifier que la structure existe
+    local structureData = self.buildingService.structuresById[structureId]
+    if not structureData then
+        return false, "Structure introuvable"
+    end
+    
+    -- Vérifier la distance
+    local attackerChar = attacker.Character
+    if not attackerChar then return false, "Personnage invalide" end
+    
+    local attackerRoot = attackerChar:FindFirstChild("HumanoidRootPart")
+    if not attackerRoot then return false, "Position invalide" end
+    
+    -- Calculer la distance jusqu'à la structure
+    local structurePos = hitPart and hitPart.Position or structureData.position
+    if not structurePos then return false, "Position de structure invalide" end
+    
+    local distance = (attackerRoot.Position - structurePos).Magnitude
+    
+    -- Obtenir l'arme équipée
+    local weapon = self:GetEquippedWeapon(attacker)
+    local weaponData = weapon and ItemTypes[weapon.id]
+    
+    -- Déterminer la portée d'attaque
+    local attackRange = 7  -- Portée par défaut (mêlée)
+    
+    if weaponData then
+        if weaponData.toolType == "bow" then
+            attackRange = 50  -- Portée pour arc
+        elseif weaponData.toolType == "weapon" or weaponData.toolType == "tool" then
+            attackRange = 10  -- Portée pour armes/outils de mêlée
+        end
+    end
+    
+    if distance > attackRange then
+        self:SendNotification(attacker, "Structure trop éloignée", "warning")
+        return false, "Structure trop éloignée"
+    end
+    
+    -- Vérifier si le joueur peut endommager cette structure
+    -- Le propriétaire peut endommager sa propre structure
+    -- Les autres joueurs peuvent attaquer les structures ennemies
+    local canDamage = true
+    
+    if structureData.owner == attackerId then
+        -- Le propriétaire peut toujours endommager sa structure (par exemple pour la détruire)
+        canDamage = true
+    elseif self.tribeService and self.tribeService:ArePlayersInSameTribe then
+        -- Vérifier si c'est une structure d'un allié
+        local ownerPlayer = Players:GetPlayerByUserId(structureData.owner)
+        if ownerPlayer and self.tribeService:ArePlayersInSameTribe(attacker, ownerPlayer) then
+            self:SendNotification(attacker, "Vous ne pouvez pas attaquer les structures de votre tribu", "error")
+            return false, "Structure alliée"
+        end
+    end
+    
+    if not canDamage then
+        return false, "Vous ne pouvez pas endommager cette structure"
+    end
+    
+    -- Calculer les dégâts
+    local baseDamage = 2  -- Dégâts à mains nues sur structure (réduit)
+    
+    if weaponData then
+        if weaponData.damage then
+            baseDamage = weaponData.damage * 0.5  -- Les structures prennent 50% des dégâts d'arme
+        end
+        if weaponData.toolType == "tool" then
+            -- Les outils font plus de dégâts aux structures
+            baseDamage = weaponData.damage or 5
+        end
+    end
+    
+    -- Appliquer les dégâts à la structure
+    local success = self.buildingService:DamageStructure(structureId, baseDamage, "player_attack")
+    
+    if success then
+        -- Mettre à jour le cooldown
+        self.lastAttackTime[attackerId] = currentTime
+        
+        -- Notifier le joueur
+        local structureName = ItemTypes[structureData.type] and ItemTypes[structureData.type].name or structureData.type
+        self:SendNotification(attacker, string.format("Vous avez endommagé %s (-%.0f durabilité)", structureName, baseDamage), "info")
+        
+        -- Mettre l'attaquant en combat
+        if self.playerCombatData[attackerId] then
+            self.playerCombatData[attackerId].isInCombat = true
+            self.playerCombatData[attackerId].lastCombatTime = currentTime
+            self:UpdateClientCombatData(attacker)
+        end
+        
+        return true, "Structure endommagée"
+    end
+    
+    return false, "Erreur lors de l'endommagement de la structure"
+end
+
 -- Gérer la mort d'un joueur en combat
 function CombatService:HandlePlayerDeath(victim, killer)
     local victimId = victim.UserId
@@ -552,22 +665,39 @@ function CombatService:Start(services)
     self.inventoryService = services.InventoryService
     self.playerService = services.PlayerService
     self.tribeService = services.TribeService
+    self.buildingService = services.BuildingService
     
     -- Récupérer les références aux RemoteEvents
     local Events = ReplicatedStorage:FindFirstChild("Events")
     if Events then
         self.remoteEvents = {
             AttackPlayer = Events:FindFirstChild("AttackPlayer"),
+            AttackStructure = Events:FindFirstChild("AttackStructure"),
             TakeDamage = Events:FindFirstChild("TakeDamage"),
             UpdateHealth = Events:FindFirstChild("UpdateHealth"),
             EquipWeapon = Events:FindFirstChild("EquipWeapon"),
             Notification = Events:FindFirstChild("Notification")
         }
         
+        -- Créer l'événement AttackStructure s'il n'existe pas
+        if not self.remoteEvents.AttackStructure then
+            local attackStructureEvent = Instance.new("RemoteEvent")
+            attackStructureEvent.Name = "AttackStructure"
+            attackStructureEvent.Parent = Events
+            self.remoteEvents.AttackStructure = attackStructureEvent
+            print("CombatService: RemoteEvent AttackStructure créé")
+        end
+        
         -- Connecter les événements
         if self.remoteEvents.AttackPlayer then
             self.remoteEvents.AttackPlayer.OnServerEvent:Connect(function(player, target, attackType)
                 self:AttackTarget(player, target, attackType)
+            end)
+        end
+        
+        if self.remoteEvents.AttackStructure then
+            self.remoteEvents.AttackStructure.OnServerEvent:Connect(function(player, structureId, hitPart)
+                self:AttackStructure(player, structureId, hitPart)
             end)
         end
     else

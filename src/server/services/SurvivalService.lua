@@ -341,8 +341,12 @@ function SurvivalService:IsPlayerIndoors(player)
     local rayOrigin = position
     local rayDirection = Vector3.new(0, 20, 0) -- Vers le haut
     
-    local ray = Ray.new(rayOrigin, rayDirection)
-    local hitPart, hitPosition, hitNormal = workspace:FindPartOnRayWithIgnoreList(ray, {character})
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+    local hitPart = raycastResult and raycastResult.Instance
     
     -- Si un toit est détecté, le joueur est probablement à l'intérieur
     return hitPart ~= nil

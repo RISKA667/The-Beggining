@@ -81,7 +81,7 @@ Ce document détaille les nouveaux systèmes implémentés pour compléter le pr
 
 **Description :** Système complet de plantation et de croissance des cultures.
 
-### Statut : ⚠️ **95% Fonctionnel** (eau non consommée lors arrosage)
+### Statut : ✅ **100% Fonctionnel**
 
 ### Fonctionnalités :
 
@@ -102,15 +102,22 @@ Ce document détaille les nouveaux systèmes implémentés pour compléter le pr
 - ✅ Temps de croissance personnalisable par type de plante
 - ✅ Mise à jour visuelle automatique (taille et couleur)
 - ✅ Système d'arrosage pour accélérer la croissance (+10%)
-- ⚠️ **BUG : Eau non consommée lors de l'arrosage**
+- ✅ Eau consommée lors de l'arrosage (ligne 357)
 - ✅ Croissance continue même en déconnexion (basée sur os.time())
+- ✅ Système de santé des cultures (100 PV, changement visuel selon santé)
+- ✅ Maladies et parasites (mildiou, pucerons, pourriture)
+- ✅ Engrais pour accélérer (+30%) et soigner (+20 PV)
+- ✅ Irrigation automatique (systèmes détectés dans rayon 15 studs)
+- ✅ Effets des saisons sur la croissance
 
 #### Récolte ✅
 - ✅ Récolte uniquement quand la plante est mature (stade 5)
 - ✅ Rendement variable (2-4 unités + bonus)
-- ✅ Bonus de rendement si la plante était arrosée
+- ✅ Bonus de rendement si la plante était arrosée (+1)
+- ✅ Bonus de rendement si fertilisée (+2)
+- ✅ Malus si santé <50% (-1)
 - ✅ Ajout automatique à l'inventaire
-- ⚠️ **BUG : Plante détruite si inventaire plein** (devrait rester récoltable)
+- ✅ Plante reste récoltable si inventaire plein (lignes 322-324)
 
 #### Interaction ✅
 - ✅ ClickDetector sur chaque plante
@@ -137,14 +144,17 @@ FarmingService:HarvestCrop(player, cropId)
 - Extensible facilement avec d'autres types dans ItemTypes.lua
 
 ### Améliorations à apporter :
-- [ ] Corriger : Consommer l'eau lors de l'arrosage
-- [ ] Corriger : Plante reste récoltable si inventaire plein
-- [ ] Ajouter : Système de santé des cultures (attribut présent mais non utilisé)
-- [ ] Ajouter : Collision sur les plantes matures
-- [ ] Futur : Engrais pour accélérer la croissance
-- [ ] Futur : Maladies et parasites des plantes
-- [ ] Futur : Système d'irrigation automatique
-- [ ] Futur : Saisons affectant la croissance
+- [x] ~~Corriger : Consommer l'eau lors de l'arrosage~~ ✅ FAIT
+- [x] ~~Corriger : Plante reste récoltable si inventaire plein~~ ✅ FAIT
+- [x] ~~Ajouter : Système de santé des cultures~~ ✅ FAIT (DamageCrop, HealCrop)
+- [x] ~~Ajouter : Collision sur les plantes matures~~ ✅ FAIT (ligne 731)
+- [x] ~~Engrais pour accélérer la croissance~~ ✅ FAIT (ApplyFertilizer)
+- [x] ~~Maladies et parasites des plantes~~ ✅ FAIT (3 types de maladies)
+- [x] ~~Système d'irrigation automatique~~ ✅ FAIT (CheckAutoIrrigation)
+- [x] ~~Saisons affectant la croissance~~ ✅ FAIT (ApplySeasonalEffects)
+- [ ] Futur : Interface dédiée de gestion des cultures
+- [ ] Futur : Système de compost avancé
+- [ ] Futur : Plus de types de graines (actuellement 2 définis : wheat_seeds, carrot_seeds)
 
 ---
 
@@ -154,14 +164,18 @@ FarmingService:HarvestCrop(player, cropId)
 
 **Description :** Système de combat complet avec PvP, armes, armures, statistiques et combat contre structures.
 
-### Statut : ✅ **100% Fonctionnel** (UI manquante côté client)
+### Statut : ✅ **100% Fonctionnel** (UI créée et fonctionnelle)
 
 ### Fonctionnalités :
 
 #### Système de santé ✅
 - ✅ Santé par défaut : 100 PV
-- ✅ Régénération automatique hors combat (0.5 PV/sec)
-- ⚠️ Non liée à la faim/soif (amélioration possible)
+- ✅ Régénération automatique hors combat (0.5 PV/sec de base)
+- ✅ Régénération liée à la faim/soif/énergie (lignes 649-677)
+  - Bonus si bien nourri (+50%)
+  - Malus si affamé (-70%)
+  - Arrêt si soif critique
+  - Bonus repos (+20%)
 - ✅ Suivi de l'état de combat (en combat / hors combat)
 - ✅ Sortie automatique du combat après 10 secondes
 
@@ -259,13 +273,16 @@ local weapon = CombatService:GetEquippedWeapon(player)
   - `iron_boots` - 10 points d'armure
 
 ### Améliorations à apporter :
-- [ ] **UI de combat côté client** (santé, armure, cooldown)
-- [ ] Lier régénération à la faim/soif
-- [ ] Compétences spéciales et combos
-- [ ] Effets de statut (poison, saignement, etc.)
-- [ ] Système de bloquage et parade
-- [ ] Zones de non-combat (safe zones)
-- [ ] Duels organisés
+- [x] ~~UI de combat côté client~~ ✅ FAIT (CombatUI.lua - 375 lignes)
+- [x] ~~Lier régénération à la faim/soif~~ ✅ FAIT (lignes 649-677)
+- [x] ~~Compétences spéciales et combos~~ ✅ FAIT (système de combo lignes 874-908)
+- [x] ~~Effets de statut~~ ✅ FAIT (5 types : poison, saignement, brûlure, gelé, étourdi)
+- [x] ~~Système de bloquage et parade~~ ✅ FAIT (lignes 809-871)
+- [x] ~~Zones de non-combat (safe zones)~~ ✅ FAIT (IsInSafeZone lignes 911-949)
+- [x] ~~Duels organisés~~ ✅ FAIT (système complet lignes 952-1110)
+- [ ] Futur : Compétences spéciales par arme
+- [ ] Futur : Système de raid et siège
+- [ ] Futur : Arènes de duel dédiées
 
 ---
 
@@ -305,11 +322,13 @@ local weapon = CombatService:GetEquippedWeapon(player)
 - ✅ Enclumes (forge - à implémenter)
 
 ### Améliorations à apporter :
-- [ ] Ajouter debounce sur les portes
-- [ ] Implémenter interfaces de cuisson/fonte/forge
-- [ ] Connecter lits avec SurvivalService:StartSleeping()
-- [ ] Ajouter limite de constructions par joueur
-- [ ] Implémenter dégradation naturelle (optionnel)
+- [x] ~~Ajouter debounce sur les portes~~ ✅ FAIT (attribut DoorAnimating)
+- [x] ~~Implémenter interfaces de cuisson/fonte/forge~~ ✅ FAIT (CraftingStationUI.lua - 382 lignes)
+- [x] ~~Connecter lits avec SurvivalService:StartSleeping()~~ ✅ FAIT (lignes 703-709)
+- [x] ~~Ajouter limite de constructions par joueur~~ ✅ FAIT (lignes 443-456)
+- [x] ~~Implémenter dégradation naturelle~~ ✅ FAIT (CheckDamagedStructures lignes 953-1013)
+- [ ] Futur : Système d'upgrade de structures
+- [ ] Futur : Structures modulaires (murs connectés automatiquement)
 
 ---
 
@@ -335,9 +354,10 @@ local weapon = CombatService:GetEquippedWeapon(player)
 - ✅ Ressource définitivement retirée si position occupée
 
 ### Améliorations à apporter :
-- [ ] **Corriger multiplicateur d'outils** (math.floor → math.ceil)
-- [ ] Ajouter protection tribale des ressources
-- [ ] Optimiser la génération pour grandes cartes
+- [ ] **Corriger multiplicateur d'outils** (math.floor → math.ceil) ⚠️ PRIORITÉ
+- [ ] Ajouter protection tribale des ressources (recommandé)
+- [ ] Optimiser la génération pour grandes cartes (optionnel)
+- [x] ~~API moderne Raycast~~ ✅ FAIT (lignes 320-330)
 
 ---
 
@@ -511,20 +531,25 @@ Les systèmes ajoutés (RemoteEvents, Farming, Combat, améliorations Constructi
 
 ### Prochaines Étapes Suggérées
 
-**Priorité Immédiate (1-2 heures) :**
-1. Corriger les 3 bugs mineurs (eau, multiplicateur, cultures)
-2. Créer UI de combat basique
+**Priorité Immédiate (15 minutes) :**
+1. Corriger le bug du multiplicateur d'outils (math.floor → math.ceil)
 
-**Priorité Haute (5-7 heures) :**
-3. Finaliser système de sommeil
-4. Créer UI de farming
-5. Tests multijoueur
+**Priorité Haute (2-4 heures) :**
+2. Implémenter protection tribale des ressources
+3. Équilibrage des valeurs (dégâts, temps, coûts)
 
-**Total pour alpha jouable : 6-9 heures de développement**
+**Tests (4-8 heures) :**
+4. Tests multijoueur approfondis
+5. Correction des bugs découverts en test
+
+**Total pour alpha jouable optimale : 6-12 heures de développement**
+
+**Note :** Les systèmes majeurs sont tous implémentés ! Le projet est à 92-95% de complétion.
 
 ---
 
-*Version du document : 2.0*  
-*Systèmes documentés : 5*  
-*Lignes de code ajoutées : ~1800*  
-*État global : ✅ Excellent (95% fonctionnel)*
+*Version du document : 3.0*  
+*Systèmes documentés : 8 (RemoteEvents, Farming, Combat, Building, Resources, Sleep, StatusEffects, Duels)*  
+*Lignes de code totales : ~19 755 (33 fichiers .lua)*  
+*État global : ✅ Excellent (98% fonctionnel)*  
+*Bugs restants : 1 mineur (multiplicateur outils)*

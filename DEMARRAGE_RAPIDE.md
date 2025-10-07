@@ -302,11 +302,13 @@ print("Joueurs en combat:", inCombat)
 
 ## 🎯 Prochaines étapes
 
-1. **Tester les systèmes** avec plusieurs joueurs
-2. **Créer les assets 3D** pour les cultures et armes
-3. **Développer les interfaces utilisateur** pour le farming et le combat
+1. **Tester les systèmes** avec plusieurs joueurs (tous les systèmes sont implémentés)
+2. **Créer les assets 3D** pour les cultures, armes, bâtiments et ressources
+3. ✅ ~~Développer les interfaces utilisateur~~ **FAIT** : 8 interfaces créées
 4. **Équilibrer les valeurs** (dégâts, temps de croissance, coûts)
-5. **Ajouter des animations** pour les actions
+5. **Corriger le multiplicateur d'outils** (remplacer math.floor par math.ceil)
+6. **Implémenter protection tribale des ressources** (optionnel mais recommandé)
+7. **Ajouter des sons et musique** pour améliorer l'immersion
 
 ---
 
@@ -324,11 +326,14 @@ Si vous rencontrez des problèmes :
 ## ✅ Checklist de vérification
 
 - [ ] Rojo connecté et synchronisé
-- [ ] Tous les services démarrés sans erreur
-- [ ] RemoteEvents créés (24 events + 4 functions)
+- [ ] Tous les services démarrés sans erreur (10 services)
+- [ ] RemoteEvents créés (25 events + 4 functions = 29 total)
 - [ ] Script de test créé et fonctionnel
-- [ ] Test de plantation réussi
-- [ ] Test de combat réussi
+- [ ] Test de plantation réussi (graines plantables, croissance visible)
+- [ ] Test de combat réussi (attaque joueur + structure)
+- [ ] Test de sommeil réussi (clic sur lit, énergie restaurée)
+- [ ] Test de stations de craft (feu de camp, four, enclume)
 - [ ] Pas d'erreurs dans la console
+- [ ] UI affichées correctement (8 interfaces : Stats, Inventaire, Craft, Notif, Tribu, Age, Combat, StationsCraft)
 
 **Bon jeu ! 🎮**

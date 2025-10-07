@@ -206,8 +206,7 @@
 ## 👥 Rejoindre la communauté
 
 - **Discord**: [Rejoignez notre serveur](https://discord.gg/thebeginning) *(À créer)*
-- **Roblox**: [Page officielle du jeu](https://www.roblox.com/games/the-beginning) *(À publier)*
-- **Twitter**: [@TheBeginningGame](https://twitter.com/thebeginninggame) *(À créer)*
+- **Roblox**: [Page officielle du jeu]([https://www.roblox.com/games/the-beginning](https://www.roblox.com/fr/games/18986665843/The-Beginning))
 
 ## 🤝 Contribution
 
@@ -219,58 +218,8 @@ Ce projet est en développement actif. Les retours et suggestions sont les bienv
 3. Signalez les problèmes de balance
 4. Suggérez de nouvelles fonctionnalités
 
-### Rapporter un Bug
-Consultez [INCOHERENCES_GAMEPLAY.md](INCOHERENCES_GAMEPLAY.md) pour voir les bugs connus, puis créez un rapport détaillé avec :
-- Description du bug
-- Étapes pour le reproduire
-- Comportement attendu vs comportement observé
-- Capture d'écran si possible
-
-## 📄 Licence
-
-*À définir*
-
-## ⭐ Remerciements
-
-Merci à tous les testeurs et contributeurs qui aident à améliorer *The Beginning* !
-
----
-
 © 2025 The Beginning Team. Tous droits réservés.
 
 **Version actuelle : 0.3.5**  
 **Statut : Alpha (Développement actif)**  
 **Dernière mise à jour : 7 Octobre 2025**
-
----
-
-## 🚀 Pour Démarrer
-
-### Prérequis
-- Roblox Studio installé
-- Connaissance de base de Lua (pour les développeurs)
-
-### Installation (Développement)
-1. Clonez le repository
-2. Ouvrez avec Roblox Studio
-3. Configurez les services dans `src/server/init.lua`
-4. Lancez le jeu en mode test
-
-### Jouer (Une fois publié)
-1. Cherchez "The Beginning" sur Roblox
-2. Cliquez sur "Jouer"
-3. Suivez le tutoriel de démarrage
-4. Commencez votre aventure !
-
----
-
-## 📞 Contact
-
-Pour toute question ou suggestion :
-- 📧 Email: *À définir*
-- 💬 Discord: *À définir*
-- 🐦 Twitter: *À définir*
-
----
-
-*The Beginning* - Construisez votre civilisation, écrivez votre histoire. 🌍⚔️🏰

@@ -31,6 +31,7 @@ function CombatService.new()
     self.playerService = nil
     self.tribeService = nil
     self.buildingService = nil
+    self.survivalService = nil
     
     -- RemoteEvents
     self.remoteEvents = {}
@@ -57,7 +58,12 @@ function CombatService:InitializePlayerCombat(player)
         damageDealt = 0,
         damageTaken = 0,
         kills = 0,
-        deaths = 0
+        deaths = 0,
+        statusEffects = {}, -- Effets de statut actifs
+        isBlocking = false, -- État de blocage
+        lastBlockTime = 0, -- Dernier blocage
+        comboCount = 0, -- Compteur de combo
+        lastAttackTime = 0 -- Dernière attaque pour combos
     }
     
     -- Configurer le personnage si disponible
@@ -150,8 +156,15 @@ function CombatService:AttackTarget(attacker, target, attackType)
         return false, "Cible trop éloignée"
     end
     
-    -- Vérifier si c'est un allié (même tribu)
-    if self.tribeService and self.tribeService:ArePlayersInSameTribe(attacker, target) then
+    -- Vérifier si l'un des joueurs est dans une zone de sécurité
+    if self:IsInSafeZone(attacker) or self:IsInSafeZone(target) then
+        self:SendNotification(attacker, "Combat impossible dans une zone de sécurité", "error")
+        return false, "Zone de sécurité"
+    end
+    
+    -- Vérifier si c'est un allié (même tribu) - sauf en duel
+    local inDuel = self:ArePlayersInDuel(attacker, target)
+    if not inDuel and self.tribeService and self.tribeService:ArePlayersInSameTribe(attacker, target) then
         self:SendNotification(attacker, "Vous ne pouvez pas attaquer un membre de votre tribu", "error")
         return false, "Allié"
     end
@@ -165,6 +178,13 @@ function CombatService:AttackTarget(attacker, target, attackType)
     
     -- Appliquer les modificateurs
     local finalDamage = baseDamage
+    
+    -- Bonus de combo
+    local comboMultiplier = self:GetComboMultiplier(attacker)
+    finalDamage = finalDamage * comboMultiplier
+    
+    -- Mettre à jour le combo
+    self:UpdateComboCount(attacker)
     
     -- Si c'est une arme à distance (arc), créer un projectile
     if weaponData and weaponData.toolType == "bow" then
@@ -289,6 +309,28 @@ function CombatService:DealDamage(attacker, victim, damage, damageType)
     local victimData = self.playerCombatData[victimId]
     
     if not victimData then return end
+    
+    -- Vérifier si la victime bloque
+    if victimData.isBlocking then
+        -- Réduire les dégâts de 70% en bloquant
+        damage = damage * 0.3
+        self:SendNotification(victim, "Attaque bloquée!", "info")
+        if attacker and attacker:IsA("Player") then
+            self:SendNotification(attacker, "Attaque bloquée par " .. victim.Name, "warning")
+        end
+    end
+    
+    -- Vérifier si la victime a paré
+    if victimData.parryWindow and tick() <= victimData.parryWindow then
+        -- Parade réussie : annuler l'attaque et étourdir l'attaquant
+        victimData.parryWindow = nil
+        self:SendNotification(victim, "Parade réussie!", "success")
+        if attacker and attacker:IsA("Player") then
+            self:SendNotification(attacker, "Vous avez été paré!", "error")
+            self:ApplyStatusEffect(attacker, "stunned", 2, 1)
+        end
+        return
+    end
     
     -- Calculer les dégâts finaux avec l'armure
     local armorReduction = victimData.armor * 0.5  -- Chaque point d'armure réduit de 0.5 point de dégâts
@@ -587,22 +629,54 @@ function CombatService:UpdateCombatStates()
     local currentTime = tick()
     
     for userId, combatData in pairs(self.playerCombatData) do
+        local player = Players:GetPlayerByUserId(userId)
+        
+        -- Mettre à jour les effets de statut
+        if player then
+            self:UpdateStatusEffects(player)
+        end
+        
         -- Sortir du combat après 10 secondes sans activité
         if combatData.isInCombat and (currentTime - combatData.lastCombatTime) > 10 then
             combatData.isInCombat = false
             combatData.combatTarget = nil
             
-            local player = Players:GetPlayerByUserId(userId)
             if player then
                 self:UpdateClientCombatData(player)
             end
         end
         
-        -- Régénération de santé hors combat
+        -- Régénération de santé hors combat (liée à la survie)
         if not combatData.isInCombat and combatData.currentHealth < combatData.maxHealth then
-            combatData.currentHealth = math.min(combatData.maxHealth, combatData.currentHealth + 0.5)
+            local regenRate = 0.5 -- Taux de base
             
+            -- Modifier selon la survie
             local player = Players:GetPlayerByUserId(userId)
+            if player and self.survivalService then
+                local survivalData = self.survivalService.playerSurvivalData[userId]
+                if survivalData then
+                    -- Bonus si bien nourri et hydraté
+                    if survivalData.hunger >= 70 and survivalData.thirst >= 70 then
+                        regenRate = regenRate * 1.5
+                    -- Ralentir si faim < 30%
+                    elseif survivalData.hunger < 30 then
+                        regenRate = regenRate * 0.3
+                    end
+                    
+                    -- Arrêter si soif critique < 20%
+                    if survivalData.thirst < 20 then
+                        regenRate = 0
+                    end
+                    
+                    -- Bonus si bien reposé
+                    if survivalData.energy >= 80 then
+                        regenRate = regenRate * 1.2
+                    end
+                end
+            end
+            
+            combatData.currentHealth = math.min(combatData.maxHealth, combatData.currentHealth + regenRate)
+            
             if player then
                 self:UpdateClientCombatData(player)
             end
@@ -636,6 +710,405 @@ function CombatService:UpdateClientCombatData(player)
     end
 end
 
+-- Système d'effets de statut
+function CombatService:ApplyStatusEffect(player, effectType, duration, intensity)
+    if not player or not player:IsA("Player") then return false end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return false end
+    
+    -- Créer l'effet
+    local effect = {
+        type = effectType,
+        startTime = tick(),
+        duration = duration,
+        intensity = intensity or 1,
+        lastTick = tick()
+    }
+    
+    table.insert(combatData.statusEffects, effect)
+    
+    -- Notifier le joueur
+    local effectNames = {
+        poison = "Empoisonnement",
+        bleeding = "Saignement",
+        burning = "Brûlure",
+        frozen = "Gelé",
+        stunned = "Étourdi"
+    }
+    
+    local effectName = effectNames[effectType] or effectType
+    self:SendNotification(player, "Vous subissez: " .. effectName, "warning")
+    
+    return true
+end
+
+-- Mettre à jour les effets de statut
+function CombatService:UpdateStatusEffects(player)
+    if not player or not player:IsA("Player") then return end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return end
+    
+    local currentTime = tick()
+    local effectsToRemove = {}
+    
+    for i, effect in ipairs(combatData.statusEffects) do
+        -- Vérifier si l'effet a expiré
+        if currentTime - effect.startTime >= effect.duration then
+            table.insert(effectsToRemove, i)
+        else
+            -- Appliquer l'effet périodiquement (toutes les secondes)
+            if currentTime - effect.lastTick >= 1 then
+                effect.lastTick = currentTime
+                
+                if effect.type == "poison" then
+                    -- Poison : 2 dégâts par seconde
+                    self:DealDamage(nil, player, 2 * effect.intensity, "poison")
+                elseif effect.type == "bleeding" then
+                    -- Saignement : 3 dégâts par seconde
+                    self:DealDamage(nil, player, 3 * effect.intensity, "bleeding")
+                elseif effect.type == "burning" then
+                    -- Brûlure : 4 dégâts par seconde
+                    self:DealDamage(nil, player, 4 * effect.intensity, "burning")
+                elseif effect.type == "frozen" then
+                    -- Gelé : ralentissement
+                    local character = player.Character
+                    if character and character:FindFirstChild("Humanoid") then
+                        character.Humanoid.WalkSpeed = 8
+                    end
+                elseif effect.type == "stunned" then
+                    -- Étourdi : impossible de bouger
+                    local character = player.Character
+                    if character and character:FindFirstChild("Humanoid") then
+                        character.Humanoid.WalkSpeed = 0
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Retirer les effets expirés
+    for i = #effectsToRemove, 1, -1 do
+        local effectIndex = effectsToRemove[i]
+        local removedEffect = table.remove(combatData.statusEffects, effectIndex)
+        
+        -- Réinitialiser la vitesse si nécessaire
+        if removedEffect.type == "frozen" or removedEffect.type == "stunned" then
+            local character = player.Character
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.WalkSpeed = 16
+            end
+        end
+    end
+end
+
+-- Système de blocage
+function CombatService:StartBlocking(player)
+    if not player or not player:IsA("Player") then return false end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return false end
+    
+    -- Vérifier le cooldown de blocage (2 secondes)
+    local currentTime = tick()
+    if currentTime - combatData.lastBlockTime < 2 then
+        self:SendNotification(player, "Blocage en cooldown", "warning")
+        return false
+    end
+    
+    combatData.isBlocking = true
+    combatData.lastBlockTime = currentTime
+    
+    -- Ralentir le joueur pendant le blocage
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.WalkSpeed = 8
+    end
+    
+    self:SendNotification(player, "Blocage activé", "info")
+    
+    return true
+end
+
+-- Arrêter le blocage
+function CombatService:StopBlocking(player)
+    if not player or not player:IsA("Player") then return false end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return false end
+    
+    combatData.isBlocking = false
+    
+    -- Restaurer la vitesse normale
+    local character = player.Character
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.WalkSpeed = 16
+    end
+    
+    return true
+end
+
+-- Système de parade (parry)
+function CombatService:AttemptParry(player)
+    if not player or not player:IsA("Player") then return false end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return false end
+    
+    -- La parade doit être activée juste avant de recevoir une attaque
+    -- On marque un temps de parade de 0.5 secondes
+    combatData.parryWindow = tick() + 0.5
+    
+    self:SendNotification(player, "Tentative de parade", "info")
+    
+    return true
+end
+
+-- Système de combos
+function CombatService:UpdateComboCount(player)
+    if not player or not player:IsA("Player") then return end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return end
+    
+    local currentTime = tick()
+    
+    -- Réinitialiser le combo si plus de 3 secondes depuis la dernière attaque
+    if currentTime - combatData.lastAttackTime > 3 then
+        combatData.comboCount = 0
+    end
+    
+    combatData.lastAttackTime = currentTime
+    combatData.comboCount = combatData.comboCount + 1
+    
+    -- Bonus de dégâts pour les combos
+    if combatData.comboCount >= 3 then
+        self:SendNotification(player, "Combo x" .. combatData.comboCount .. "!", "success")
+    end
+end
+
+-- Obtenir le multiplicateur de combo
+function CombatService:GetComboMultiplier(player)
+    if not player or not player:IsA("Player") then return 1 end
+    
+    local userId = player.UserId
+    local combatData = self.playerCombatData[userId]
+    if not combatData then return 1 end
+    
+    -- Bonus de 10% par attaque dans le combo (max 50%)
+    local bonus = math.min(0.5, (combatData.comboCount - 1) * 0.1)
+    return 1 + bonus
+end
+
+-- Zones de sécurité (safe zones)
+function CombatService:IsInSafeZone(player)
+    if not player or not player:IsA("Player") then return false end
+    
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return false end
+    
+    local position = character.HumanoidRootPart.Position
+    
+    -- Vérifier les zones de sécurité dans le workspace
+    local safeZonesFolder = game:GetService("Workspace"):FindFirstChild("SafeZones")
+    if safeZonesFolder then
+        for _, zone in ipairs(safeZonesFolder:GetChildren()) do
+            if zone:IsA("BasePart") or (zone:IsA("Model") and zone.PrimaryPart) then
+                local zonePart = zone:IsA("BasePart") and zone or zone.PrimaryPart
+                local distance = (zonePart.Position - position).Magnitude
+                local radius = zone:GetAttribute("SafeRadius") or zonePart.Size.Magnitude
+                
+                if distance <= radius then
+                    return true
+                end
+            end
+        end
+    end
+    
+    -- Vérifier si le joueur est dans un spawn point
+    local spawnLocations = game:GetService("Workspace"):FindFirstChild("SpawnLocations")
+    if spawnLocations then
+        for _, spawn in ipairs(spawnLocations:GetChildren()) do
+            if spawn:IsA("SpawnLocation") then
+                local distance = (spawn.Position - position).Magnitude
+                if distance <= 20 then -- Rayon de 20 studs autour du spawn
+                    return true
+                end
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Système de duels
+function CombatService:ChallengeToDuel(challenger, target)
+    if not challenger or not target then return false end
+    if not challenger:IsA("Player") or not target:IsA("Player") then return false end
+    
+    -- Ne pas permettre de duel contre soi-même
+    if challenger.UserId == target.UserId then
+        self:SendNotification(challenger, "Vous ne pouvez pas vous défier vous-même", "error")
+        return false
+    end
+    
+    -- Vérifier que les deux joueurs ne sont pas déjà en duel
+    if self.activeDuels then
+        for _, duel in pairs(self.activeDuels) do
+            if duel.player1 == challenger.UserId or duel.player2 == challenger.UserId then
+                self:SendNotification(challenger, "Vous êtes déjà en duel", "error")
+                return false
+            end
+            if duel.player1 == target.UserId or duel.player2 == target.UserId then
+                self:SendNotification(challenger, target.Name .. " est déjà en duel", "error")
+                return false
+            end
+        end
+    else
+        self.activeDuels = {}
+        self.duelChallenges = {}
+        self.nextDuelId = 1
+    end
+    
+    -- Créer une invitation de duel
+    local challengeId = "challenge_" .. challenger.UserId .. "_" .. target.UserId
+    
+    self.duelChallenges[challengeId] = {
+        challenger = challenger.UserId,
+        target = target.UserId,
+        timestamp = tick()
+    }
+    
+    -- Notifier les joueurs
+    self:SendNotification(challenger, "Invitation de duel envoyée à " .. target.Name, "info")
+    self:SendNotification(target, challenger.Name .. " vous défie en duel! Acceptez ou refusez.", "warning")
+    
+    -- Auto-expiration après 30 secondes
+    delay(30, function()
+        if self.duelChallenges[challengeId] then
+            self.duelChallenges[challengeId] = nil
+            self:SendNotification(challenger, "L'invitation de duel a expiré", "info")
+        end
+    end)
+    
+    return true
+end
+
+-- Accepter un duel
+function CombatService:AcceptDuel(target, challengerId)
+    if not target or not target:IsA("Player") then return false end
+    
+    local challengeId = "challenge_" .. challengerId .. "_" .. target.UserId
+    local challenge = self.duelChallenges[challengeId]
+    
+    if not challenge then
+        self:SendNotification(target, "Aucune invitation de duel trouvée", "error")
+        return false
+    end
+    
+    local challenger = Players:GetPlayerByUserId(challengerId)
+    if not challenger then
+        self:SendNotification(target, "Le challenger n'est plus connecté", "error")
+        self.duelChallenges[challengeId] = nil
+        return false
+    end
+    
+    -- Créer le duel
+    local duelId = "duel_" .. self.nextDuelId
+    self.nextDuelId = self.nextDuelId + 1
+    
+    self.activeDuels[duelId] = {
+        player1 = challengerId,
+        player2 = target.UserId,
+        startTime = tick(),
+        winner = nil
+    }
+    
+    -- Retirer l'invitation
+    self.duelChallenges[challengeId] = nil
+    
+    -- Notifier les joueurs
+    self:SendNotification(challenger, "Duel accepté! Combat contre " .. target.Name, "success")
+    self:SendNotification(target, "Duel commencé contre " .. challenger.Name, "success")
+    
+    -- Téléporter les joueurs dans une arène de duel (optionnel)
+    -- Pour l'instant, ils se battent là où ils sont
+    
+    return true
+end
+
+-- Refuser un duel
+function CombatService:DeclineDuel(target, challengerId)
+    if not target or not target:IsA("Player") then return false end
+    
+    local challengeId = "challenge_" .. challengerId .. "_" .. target.UserId
+    local challenge = self.duelChallenges[challengeId]
+    
+    if not challenge then
+        return false
+    end
+    
+    local challenger = Players:GetPlayerByUserId(challengerId)
+    if challenger then
+        self:SendNotification(challenger, target.Name .. " a refusé votre duel", "warning")
+    end
+    
+    self:SendNotification(target, "Vous avez refusé le duel", "info")
+    self.duelChallenges[challengeId] = nil
+    
+    return true
+end
+
+-- Vérifier si deux joueurs sont en duel
+function CombatService:ArePlayersInDuel(player1, player2)
+    if not self.activeDuels then return false end
+    
+    local userId1 = player1.UserId
+    local userId2 = player2.UserId
+    
+    for _, duel in pairs(self.activeDuels) do
+        if (duel.player1 == userId1 and duel.player2 == userId2) or
+           (duel.player1 == userId2 and duel.player2 == userId1) then
+            return true, duel
+        end
+    end
+    
+    return false
+end
+
+-- Terminer un duel
+function CombatService:EndDuel(duelId, winnerId)
+    local duel = self.activeDuels[duelId]
+    if not duel then return false end
+    
+    duel.winner = winnerId
+    duel.endTime = tick()
+    
+    local winner = Players:GetPlayerByUserId(winnerId)
+    local loserId = (duel.player1 == winnerId) and duel.player2 or duel.player1
+    local loser = Players:GetPlayerByUserId(loserId)
+    
+    if winner then
+        self:SendNotification(winner, "Vous avez gagné le duel!", "success")
+    end
+    
+    if loser then
+        self:SendNotification(loser, "Vous avez perdu le duel", "error")
+    end
+    
+    -- Retirer le duel actif
+    self.activeDuels[duelId] = nil
+    
+    return true
+end
+
 -- Envoyer une notification
 function CombatService:SendNotification(player, message, messageType)
     if self.remoteEvents.Notification then
@@ -666,6 +1139,7 @@ function CombatService:Start(services)
     self.playerService = services.PlayerService
     self.tribeService = services.TribeService
     self.buildingService = services.BuildingService
+    self.survivalService = services.SurvivalService
     
     -- Récupérer les références aux RemoteEvents
     local Events = ReplicatedStorage:FindFirstChild("Events")

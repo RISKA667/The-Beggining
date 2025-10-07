@@ -187,7 +187,8 @@ function FarmingService:CreateCropInstance(cropData)
     local primaryPart = Instance.new("Part")
     primaryPart.Name = "PrimaryPart"
     primaryPart.Anchored = true
-    primaryPart.CanCollide = false
+    -- Collision activée pour les plantes matures (stade 4 et 5)
+    primaryPart.CanCollide = (cropData.stage >= 4)
     primaryPart.Material = Enum.Material.Grass
     
     -- Taille et couleur selon le stade
@@ -288,7 +289,17 @@ function FarmingService:HarvestCrop(player, cropId)
         bonusYield = bonusYield + 1
     end
     
-    local totalYield = baseYield + bonusYield
+    -- Bonus si la plante était fertilisée
+    if cropData.fertilized then
+        bonusYield = bonusYield + 2
+    end
+    
+    -- Malus si la plante est en mauvaise santé
+    if cropData.health < 50 then
+        bonusYield = bonusYield - 1
+    end
+    
+    local totalYield = math.max(1, baseYield + bonusYield)
     
     -- Ajouter les produits à l'inventaire
     if self.inventoryService then
@@ -308,7 +319,8 @@ function FarmingService:HarvestCrop(player, cropId)
             
             return true
         else
-            self:SendNotification(player, "Inventaire plein", "error")
+            -- Inventaire plein : la plante reste récoltable
+            self:SendNotification(player, "Inventaire plein, la plante reste prête à récolter", "warning")
             return false
         end
     end
@@ -341,9 +353,297 @@ function FarmingService:WaterCrop(player, cropId)
     -- Accélérer légèrement la croissance (10% plus rapide)
     cropData.growthTime = math.floor(cropData.growthTime * 0.9)
     
+    -- Consommer l'eau
+    self.inventoryService:RemoveItemFromInventory(player, "water_container", 1)
+    
     self:SendNotification(player, "Plante arrosée", "success")
     
     return true
+end
+
+-- Endommager une culture
+function FarmingService:DamageCrop(cropId, damage, cause)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then return false end
+    
+    -- Réduire la santé
+    cropData.health = math.max(0, cropData.health - damage)
+    
+    -- Mettre à jour l'apparence pour refléter la santé
+    self:UpdateCropAppearance(cropId)
+    
+    -- Si la santé atteint 0, détruire la culture
+    if cropData.health <= 0 then
+        -- Notifier le propriétaire
+        local owner = game:GetService("Players"):GetPlayerByUserId(cropData.owner)
+        if owner then
+            local causeName = cause or "inconnue"
+            self:SendNotification(owner, "Une de vos plantes est morte (cause: " .. causeName .. ")", "error")
+        end
+        
+        self:DestroyCrop(cropId)
+        return true
+    end
+    
+    return true
+end
+
+-- Soigner une culture (avec engrais ou soin)
+function FarmingService:HealCrop(cropId, healAmount)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then return false end
+    
+    cropData.health = math.min(100, cropData.health + healAmount)
+    
+    -- Mettre à jour l'apparence
+    self:UpdateCropAppearance(cropId)
+    
+    return true
+end
+
+-- Appliquer de l'engrais à une culture
+function FarmingService:ApplyFertilizer(player, cropId, fertilizerType)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then
+        self:SendNotification(player, "Culture introuvable", "error")
+        return false
+    end
+    
+    -- Vérifier que le joueur est à proximité
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    local distance = (character.HumanoidRootPart.Position - cropData.position).Magnitude
+    if distance > 10 then
+        self:SendNotification(player, "Vous êtes trop loin de cette plante", "error")
+        return false
+    end
+    
+    -- Vérifier que le joueur a l'engrais
+    local fertilizerItemId = fertilizerType or "fertilizer"
+    if not self.inventoryService or not self.inventoryService:HasItemInInventory(player, fertilizerItemId, 1) then
+        self:SendNotification(player, "Vous n'avez pas d'engrais", "error")
+        return false
+    end
+    
+    -- Retirer l'engrais de l'inventaire
+    self.inventoryService:RemoveItemFromInventory(player, fertilizerItemId, 1)
+    
+    -- Effets de l'engrais
+    -- 1. Accélérer la croissance (30% plus rapide)
+    cropData.growthTime = math.floor(cropData.growthTime * 0.7)
+    
+    -- 2. Soigner la plante
+    self:HealCrop(cropId, 20)
+    
+    -- 3. Augmenter le rendement potentiel (marqueur pour la récolte)
+    cropData.fertilized = true
+    
+    self:SendNotification(player, "Engrais appliqué avec succès", "success")
+    
+    return true
+end
+
+-- Système de maladies et parasites
+function FarmingService:CheckCropDiseases(cropId)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then return end
+    
+    -- Maladies possibles
+    local diseases = {
+        {id = "blight", name = "Mildiou", chance = 0.01, damage = 5},
+        {id = "aphids", name = "Pucerons", chance = 0.015, damage = 3},
+        {id = "rot", name = "Pourriture", chance = 0.008, damage = 10}
+    }
+    
+    -- Vérifier si la plante n'est pas déjà malade
+    if cropData.diseased then
+        -- Appliquer les dégâts de la maladie existante
+        for _, disease in ipairs(diseases) do
+            if cropData.disease == disease.id then
+                self:DamageCrop(cropId, disease.damage, disease.name)
+                break
+            end
+        end
+        return
+    end
+    
+    -- Chance d'attraper une maladie
+    -- Réduite si la plante est arrosée et en bonne santé
+    local baseChance = 1
+    if cropData.watered then
+        baseChance = baseChance * 0.5
+    end
+    if cropData.health > 70 then
+        baseChance = baseChance * 0.5
+    end
+    
+    -- Vérifier chaque maladie
+    for _, disease in ipairs(diseases) do
+        if math.random() < (disease.chance * baseChance) then
+            cropData.diseased = true
+            cropData.disease = disease.id
+            
+            -- Notifier le propriétaire
+            local owner = game:GetService("Players"):GetPlayerByUserId(cropData.owner)
+            if owner then
+                self:SendNotification(owner, "Une de vos plantes a attrapé: " .. disease.name, "warning")
+            end
+            
+            break
+        end
+    end
+end
+
+-- Traiter une maladie de culture
+function FarmingService:TreatCropDisease(player, cropId)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then
+        self:SendNotification(player, "Culture introuvable", "error")
+        return false
+    end
+    
+    if not cropData.diseased then
+        self:SendNotification(player, "Cette plante n'est pas malade", "info")
+        return false
+    end
+    
+    -- Vérifier que le joueur a un traitement
+    local treatmentItemId = "plant_medicine"
+    if not self.inventoryService or not self.inventoryService:HasItemInInventory(player, treatmentItemId, 1) then
+        self:SendNotification(player, "Vous avez besoin d'un traitement pour plantes", "error")
+        return false
+    end
+    
+    -- Retirer le traitement
+    self.inventoryService:RemoveItemFromInventory(player, treatmentItemId, 1)
+    
+    -- Guérir la plante
+    cropData.diseased = false
+    cropData.disease = nil
+    
+    -- Soigner un peu la plante
+    self:HealCrop(cropId, 15)
+    
+    self:SendNotification(player, "Plante traitée avec succès", "success")
+    
+    return true
+end
+
+-- Système d'irrigation automatique
+function FarmingService:CheckAutoIrrigation(cropId)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then return end
+    
+    -- Vérifier s'il y a un système d'irrigation à proximité
+    local cropsFolder = game:GetService("Workspace"):FindFirstChild("Crops")
+    if not cropsFolder then return end
+    
+    local structuresFolder = game:GetService("Workspace"):FindFirstChild("Structures")
+    if not structuresFolder then return end
+    
+    -- Chercher un système d'irrigation dans un rayon de 15 studs
+    for _, structure in ipairs(structuresFolder:GetChildren()) do
+        if structure:GetAttribute("BuildingType") == "irrigation_system" and structure.PrimaryPart then
+            local distance = (structure.PrimaryPart.Position - cropData.position).Magnitude
+            
+            if distance <= 15 then
+                -- Arroser automatiquement si pas arrosée récemment
+                local timeSinceWater = os.time() - cropData.lastWaterTime
+                if timeSinceWater >= 600 then -- 10 minutes
+                    cropData.watered = true
+                    cropData.lastWaterTime = os.time()
+                    cropData.growthTime = math.floor(cropData.growthTime * 0.95)
+                    
+                    -- Soigner légèrement la plante
+                    self:HealCrop(cropId, 5)
+                end
+                break
+            end
+        end
+    end
+end
+
+-- Système de saisons
+function FarmingService:GetCurrentSeason()
+    -- Obtenir le temps du jeu (cycle jour/nuit)
+    local timeService = self.timeService
+    if timeService and timeService.GetCurrentSeason then
+        return timeService:GetCurrentSeason()
+    end
+    
+    -- Fallback : utiliser le temps système
+    local month = tonumber(os.date("%m"))
+    
+    if month >= 3 and month <= 5 then
+        return "spring" -- Printemps
+    elseif month >= 6 and month <= 8 then
+        return "summer" -- Été
+    elseif month >= 9 and month <= 11 then
+        return "autumn" -- Automne
+    else
+        return "winter" -- Hiver
+    end
+end
+
+-- Obtenir le modificateur de croissance selon la saison
+function FarmingService:GetSeasonGrowthModifier(cropType)
+    local season = self:GetCurrentSeason()
+    
+    -- Définir les saisons favorables pour chaque type de culture
+    local seasonPreferences = {
+        -- Légumes de printemps
+        ["wheat_seed"] = {spring = 1.3, summer = 1.0, autumn = 0.8, winter = 0.5},
+        ["carrot_seed"] = {spring = 1.2, summer = 0.9, autumn = 1.1, winter = 0.6},
+        
+        -- Légumes d'été
+        ["tomato_seed"] = {spring = 0.8, summer = 1.4, autumn = 0.9, winter = 0.3},
+        ["corn_seed"] = {spring = 0.7, summer = 1.3, autumn = 1.0, winter = 0.4},
+        
+        -- Légumes d'automne
+        ["pumpkin_seed"] = {spring = 0.9, summer = 1.0, autumn = 1.3, winter = 0.5},
+        
+        -- Cultures hivernales (rares)
+        ["winter_wheat_seed"] = {spring = 0.8, summer = 0.6, autumn = 1.1, winter = 1.2}
+    }
+    
+    local preferences = seasonPreferences[cropType]
+    if preferences and preferences[season] then
+        return preferences[season]
+    end
+    
+    -- Par défaut, toutes les saisons sauf l'hiver
+    if season == "winter" then
+        return 0.5 -- Croissance ralentie en hiver
+    elseif season == "spring" then
+        return 1.2 -- Croissance accélérée au printemps
+    else
+        return 1.0 -- Croissance normale
+    end
+end
+
+-- Appliquer l'effet des saisons lors de la croissance
+function FarmingService:ApplySeasonalEffects(cropId)
+    local cropData = self.plantedCrops[cropId]
+    if not cropData then return end
+    
+    local seasonModifier = self:GetSeasonGrowthModifier(cropData.seedId)
+    
+    -- Ajuster le temps de croissance selon la saison
+    -- Plus le modificateur est élevé, plus la croissance est rapide
+    if not cropData.originalGrowthTime then
+        cropData.originalGrowthTime = cropData.growthTime
+    end
+    
+    -- Recalculer le temps de croissance
+    cropData.growthTime = math.floor(cropData.originalGrowthTime / seasonModifier)
+    
+    -- En hiver, les plantes peuvent perdre de la santé
+    if self:GetCurrentSeason() == "winter" and math.random() < 0.05 then
+        self:DamageCrop(cropId, 2, "froid")
+    end
 end
 
 -- Démarrer la croissance d'une culture
@@ -406,14 +706,33 @@ function FarmingService:UpdateCropAppearance(cropId)
     -- Mettre à jour la taille et la couleur
     local targetSize = Vector3.new(1, 2, 1) * stage.scale
     primaryPart.Size = targetSize
-    primaryPart.Color = stage.color
+    
+    -- Modifier la couleur en fonction de la santé
+    if cropData.health < 30 then
+        -- Plante en mauvaise santé : teinte brunâtre
+        primaryPart.Color = Color3.fromRGB(139, 90, 43)
+    elseif cropData.health < 60 then
+        -- Plante en santé moyenne : teinte jaunâtre
+        primaryPart.Color = Color3.new(
+            stage.color.R * 0.9,
+            stage.color.G * 0.8,
+            stage.color.B * 0.5
+        )
+    else
+        -- Plante en bonne santé : couleur normale
+        primaryPart.Color = stage.color
+    end
     
     -- Repositionner pour que la base reste au sol
     local position = cropData.position + Vector3.new(0, targetSize.Y / 2, 0)
     primaryPart.Position = position
     
+    -- Activer la collision pour les plantes matures
+    primaryPart.CanCollide = (cropData.stage >= 4)
+    
     -- Mettre à jour l'attribut du stade
     cropData.instance:SetAttribute("Stage", cropData.stage)
+    cropData.instance:SetAttribute("Health", cropData.health)
 end
 
 -- Détruire une culture
@@ -502,6 +821,12 @@ function FarmingService:Start(services)
             for cropId, _ in pairs(self.plantedCrops) do
                 pcall(function()
                     self:UpdateCropGrowth(cropId)
+                    -- Vérifier les maladies toutes les 30 secondes
+                    self:CheckCropDiseases(cropId)
+                    -- Vérifier l'irrigation automatique
+                    self:CheckAutoIrrigation(cropId)
+                    -- Appliquer les effets saisonniers
+                    self:ApplySeasonalEffects(cropId)
                 end)
             end
         end
